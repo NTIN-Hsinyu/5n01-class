@@ -28,7 +28,7 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 .note{margin-top:18px;padding:14px;background:#fafbfc;border-radius:12px;color:var(--muted);font-size:13px;line-height:1.6}.bottom{display:none}
 
 .reminder-banner{background:linear-gradient(135deg,#fff1ed,#fff8df);border:2px solid #f2a18f;border-radius:18px;padding:18px 20px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;gap:16px;box-shadow:0 8px 24px rgba(242,159,143,.12)}
-.reminder-banner strong{display:block;font-size:17px;margin-bottom:4px}.reminder-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.quick-done{border:0;border-radius:11px;padding:9px 13px;background:#e7f7f1;color:#24715f;font-weight:800;cursor:pointer;white-space:nowrap}.quick-done:hover{filter:brightness(.98)}.reminder-banner span{font-size:13px;color:#795e58}.deadline{font-weight:800;color:#d85f4a;white-space:nowrap}
+.reminder-banner strong{display:block;font-size:17px;margin-bottom:4px}.reminder-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.quick-done{border:1px solid var(--line);border-radius:11px;padding:9px 13px;background:#fff;color:var(--text);font-weight:800;cursor:pointer;white-space:nowrap;transition:.18s ease}.quick-done.completed{background:#e7f7f1;color:#24715f;border-color:#bfe7da}.quick-done:hover{filter:brightness(.98)}.reminder-banner span{font-size:13px;color:#795e58}.deadline{font-weight:800;color:#d85f4a;white-space:nowrap}
 .task-list{display:grid;gap:10px}.task{border:1px solid var(--line);border-radius:13px;padding:13px 14px;display:flex;gap:12px;align-items:flex-start}.task .dot{width:10px;height:10px;border-radius:50%;margin-top:5px;flex:0 0 auto}.task.quiz .dot{background:#f2c66d}.task.assignment .dot{background:#f29f8f}.task-info{flex:1}.task-title{font-weight:700;font-size:14px}.task-sub{font-size:12px;color:var(--muted);margin-top:4px}.task-time{font-size:12px;font-weight:700;color:#d85f4a}
 .timetable-wrap{overflow-x:auto}.timetable{width:100%;border-collapse:separate;border-spacing:5px;min-width:650px}.timetable th{font-size:12px;color:var(--muted);padding:7px}.timetable td{height:66px;background:#fafbfc;border-radius:10px;text-align:center;padding:6px;font-size:12px;vertical-align:middle}.timetable td.course{background:#edf5ff;font-weight:700}.timetable td.course.alt{background:#eef9f5}.timetable td.course.warm{background:#fff4e2}.period{font-weight:700;color:var(--muted);width:54px}
 .modal-backdrop{position:fixed;inset:0;background:rgba(27,35,43,.48);display:none;align-items:center;justify-content:center;padding:20px;z-index:100}.modal-backdrop.show{display:flex}.modal{width:min(430px,100%);background:white;border-radius:22px;padding:25px;box-shadow:0 24px 70px rgba(0,0,0,.22);animation:pop .2s ease}.modal-icon{font-size:34px}.modal h3{font-size:21px;margin:10px 0 7px}.modal p{color:var(--muted);line-height:1.65;font-size:14px}.modal .due{background:#fff1ed;border-radius:12px;padding:12px;margin:15px 0;color:#b94e3b;font-weight:800}.modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.modal-actions button{padding:11px;border-radius:11px;border:1px solid var(--line);font-weight:700;cursor:pointer}.done{background:#eaf8f4;color:#287865}.later{background:#fff;color:#555}.dontask{display:block;margin:13px auto 0;border:0;background:none;color:var(--muted);font-size:12px;cursor:pointer}
@@ -36,6 +36,77 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 
 .authbar{display:flex;align-items:center;gap:10px}.auth-btn{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 13px;font-weight:700;cursor:pointer;color:var(--text)}.auth-btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}.userbox{display:none;align-items:center;gap:8px}.userbox img{width:30px;height:30px;border-radius:50%;object-fit:cover}.usertext{font-size:12px;line-height:1.25}.usertext b{display:block;font-size:13px}.access-gate{position:fixed;inset:0;background:linear-gradient(135deg,#fff4ef,#f4f8ff,#eefaf6);z-index:999;display:flex;align-items:center;justify-content:center;padding:22px}.gate-card{width:min(430px,100%);background:#fff;border:1px solid var(--line);border-radius:24px;padding:30px;text-align:center;box-shadow:0 22px 70px rgba(50,70,90,.14)}.gate-mark{width:64px;height:64px;margin:auto;border-radius:18px;display:grid;place-items:center;background:var(--soft);font-size:28px}.gate-card h2{font-size:24px;margin:16px 0 8px}.gate-card p{color:var(--muted);line-height:1.7;font-size:14px}.gate-error{display:none;margin-top:13px;padding:10px;border-radius:10px;background:#fff1ed;color:#a64d3c;font-size:13px}.gate-loading{font-size:13px;color:var(--muted);margin-top:12px}
 @media(max-width:760px){nav{display:none}.wrap{padding:0 14px}.top{height:58px}.brand{font-size:17px}.brand span{display:none}main{padding-top:18px}.hero{padding:22px;border-radius:17px}.hero h1{font-size:25px}.grid{grid-template-columns:1fr}.reminder-banner{align-items:flex-start;flex-direction:column}.reminder-actions{width:100%;justify-content:space-between}.modal-actions{grid-template-columns:1fr}section{padding:18px}.bottom{display:flex;position:fixed;bottom:0;left:0;right:0;height:calc(64px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);background:#fff;border-top:1px solid var(--line);justify-content:space-around;align-items:center;z-index:20}.bottom a{text-decoration:none;color:#555;font-size:12px;text-align:center}.bottom b{display:block;font-size:18px;margin-bottom:2px}}
+
+/* v7.2：手機閱讀優化 */
+@media(max-width:760px){
+  body{font-size:16px;line-height:1.55}
+  .wrap{padding-left:12px;padding-right:12px}
+  main{padding-top:14px}
+
+  .top{height:64px}
+  .brand{font-size:18px;white-space:nowrap}
+  .authbar{min-width:0}
+  .userbox{gap:6px;min-width:0}
+  .userbox img{width:34px;height:34px;flex:0 0 auto}
+  .usertext{font-size:13px;max-width:130px;min-width:0}
+  .usertext b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #userEmail{display:block;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .auth-btn{font-size:14px;padding:8px 11px}
+
+  .hero{padding:22px 20px;margin-bottom:20px}
+  .hero small{font-size:14px}
+  .hero h1{font-size:26px;line-height:1.3;margin:8px 0 10px}
+  .hero p{font-size:16px;line-height:1.55}
+  .ios-tip{font-size:15px;line-height:1.65;padding:14px}
+
+  .reminder-banner{padding:18px;margin-bottom:20px}
+  .reminder-banner strong{font-size:19px;line-height:1.45}
+  .reminder-banner span{font-size:15px;line-height:1.6}
+  .deadline{font-size:16px}
+  .quick-done{font-size:15px;padding:10px 13px}
+
+  section{padding:20px 18px}
+  h2{font-size:22px;line-height:1.35;margin-bottom:18px}
+
+  .filters{gap:8px;margin-bottom:12px}
+  button.filter{font-size:14px;padding:8px 12px}
+
+  .notice{padding:17px 0}
+  .meta{font-size:14px;line-height:1.45}
+  .badge{font-size:13px;padding:4px 8px}
+  .title{font-size:20px;line-height:1.45}
+  .body{font-size:16px;line-height:1.75;margin-top:10px}
+
+  .task{padding:15px 13px;gap:10px}
+  .task-title{font-size:17px;line-height:1.4}
+  .task-sub{font-size:14px;line-height:1.5;margin-top:5px}
+  .task-time{font-size:14px;line-height:1.4;white-space:nowrap}
+  .note{font-size:14px;line-height:1.65;padding:14px}
+
+  .event{padding:14px 0;gap:13px}
+  .event b{font-size:17px;line-height:1.45}
+  .date{width:52px;font-size:17px;padding:7px 3px}
+  .date small{font-size:11px}
+
+  .link{font-size:16px;padding:14px 12px;line-height:1.4}
+  .links{grid-template-columns:1fr 1fr;gap:10px}
+
+  .bottom{height:calc(72px + env(safe-area-inset-bottom))}
+  .bottom a{font-size:13px;min-width:60px}
+  .bottom b{font-size:21px;margin-bottom:3px}
+
+  .gate-card{padding:28px 22px}
+  .gate-card h2{font-size:25px}
+  .gate-card p{font-size:16px}
+  .gate-error,.gate-loading{font-size:14px}
+
+  .modal{padding:23px 20px}
+  .modal h3{font-size:22px}
+  .modal p{font-size:16px}
+  .modal-actions button{font-size:16px}
+  .dontask{font-size:14px}
+}
+
 </style>
 </head>
 <body><div class="access-gate" id="accessGate"><div class="gate-card"><div class="gate-mark">🏫</div><h2>五護101班｜班級公告欄</h2><p>請使用國立臺南護理專科學校 Google 帳號登入，以查看班級公告與行程。</p><button class="auth-btn primary" id="googleLoginBtn">使用 NTIN Google 帳號登入</button><div class="gate-loading" id="gateLoading">正在確認登入狀態…</div><div class="gate-error" id="gateError"></div></div></div>
@@ -46,7 +117,7 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 <div class="ios-tip" id="iosTip">iPhone / iPad：請用 Safari 開啟此頁，點「分享」→「加入主畫面」，即可像 App 一樣從桌面開啟。</div></div>
 <div class="reminder-banner" id="urgentReminder">
 <div><strong>⚠️ 重要待辦｜基本護理學課前作業</strong><span><b>作業</b>｜請確認已完成並送出，避免只上傳但未按「繳交」。</span></div>
-<div class="reminder-actions"><div class="deadline">截止：9/18 23:59</div><button class="quick-done" id="quickDoneBtn">✓ 已完成／已繳交</button></div></div>
+<div class="reminder-actions"><div class="deadline">截止：9/18 23:59</div><button class="quick-done" id="quickDoneBtn">已完成</button></div></div>
 <div class="grid"><div><section id="notices"><h2>📌 最新公告</h2><div class="filters">
 <button class="filter active" data-filter="全部">全部</button><button class="filter" data-filter="重要">重要</button><button class="filter" data-filter="課務">課務</button><button class="filter" data-filter="班務">班務</button><button class="filter" data-filter="活動">活動</button><button class="filter" data-filter="獎助學金">獎助學金</button><button class="filter" data-filter="其他">其他</button></div><div id="noticeList"></div></section>
 <section id="tasks" style="margin-top:22px"><h2>📝 小考、作業與待辦</h2>
@@ -193,13 +264,19 @@ function openReminder(){
  if(status!=="done" && hoursLeft>=0 && hoursLeft<=72 && Date.now()>snoozeUntil){
    setTimeout(()=>modal.classList.add("show"),500);
  }
- if(status==="done") document.querySelector("#urgentReminder").style.display="none";
+ if(status==="done"){
+   const quickBtn=document.querySelector("#quickDoneBtn");
+   quickBtn.classList.add("completed");
+   quickBtn.textContent="✓ 已完成";
+ }
 }
 function markTaskDone(){
  localStorage.setItem(taskKey,"done");
  localStorage.removeItem(snoozeKey);
  modal.classList.remove("show");
- document.querySelector("#urgentReminder").style.display="none";
+ const quickBtn=document.querySelector("#quickDoneBtn");
+ quickBtn.classList.add("completed");
+ quickBtn.textContent="✓ 已完成";
 }
 document.querySelector("#doneBtn").onclick=markTaskDone;
 document.querySelector("#quickDoneBtn").onclick=markTaskDone;
