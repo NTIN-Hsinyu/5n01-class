@@ -1,0 +1,15 @@
+{
+  "name": "五護101班｜班級公告欄",
+  "short_name": "五護101班",
+  "description": "五護101班班級公告、近期行程與常用資訊",
+  "lang": "zh-TW",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fff9f5",
+  "theme_color": "#4f7cac",
+  "icons": [
+    {"src":"icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+  ]
+}

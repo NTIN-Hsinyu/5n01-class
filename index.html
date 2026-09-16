@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#4f7cac">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="五護101班">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<title>五護101班｜班級公告欄</title>
+<style>
+:root{--bg:#fff9f5;--card:#ffffff;--text:#263238;--muted:#748087;--line:#eee7e2;--accent:#4f7cac;--accent2:#f29f8f;--accent3:#63b7a5;--accent4:#f2c66d;--soft:#f4f8fc}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif;background:var(--bg);color:var(--text)}
+header{background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}.wrap{max-width:1040px;margin:auto;padding:0 20px}
+.top{height:68px;display:flex;align-items:center;justify-content:space-between}.brand{font-weight:800;font-size:20px}.brand span{font-weight:500;color:var(--muted);font-size:14px;margin-left:8px}
+nav a{color:var(--text);text-decoration:none;margin-left:22px;font-size:14px}main{padding:32px 0 95px}
+.hero{background:linear-gradient(135deg,#fff4ef 0%,#f4f8ff 48%,#eefaf6 100%);border:1px solid var(--line);border-radius:22px;padding:30px;margin-bottom:24px;position:relative}
+.hero small{color:var(--muted)}h1{font-size:31px;margin:7px 0 8px}.hero p{margin:0;color:var(--muted)}
+.install{margin-top:18px;border:0;border-radius:12px;padding:10px 15px;background:linear-gradient(135deg,var(--accent),#6d8fc8);color:white;font-weight:700;cursor:pointer;display:none}
+.ios-tip{display:none;margin-top:15px;padding:12px;background:#fff;border:1px solid var(--line);border-radius:12px;font-size:13px;line-height:1.6}
+.grid{display:grid;grid-template-columns:1.55fr .85fr;gap:22px}section{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px}
+h2{font-size:18px;margin:0 0 18px}.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 12px;cursor:pointer}.filter.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.notice{padding:16px 0;border-top:1px solid var(--line);cursor:pointer}.notice:first-of-type{border-top:0}.meta{font-size:12px;color:var(--muted);margin-bottom:5px}.title{font-weight:700}.body{display:none;color:#555;font-size:14px;line-height:1.7;margin-top:9px}.notice.open .body{display:block}.badge{display:inline-block;padding:3px 8px;border-radius:7px;background:var(--soft);margin-right:7px}.notice:nth-child(2n) .badge{background:#fff0ec}.notice:nth-child(3n) .badge{background:#eaf8f4}.notice:nth-child(4n) .badge{background:#fff6dc}
+.event{display:flex;gap:14px;padding:12px 0;border-top:1px solid var(--line)}.event:first-of-type{border-top:0}.date{width:46px;text-align:center;font-weight:800;color:var(--accent);background:#f0f6ff;border-radius:10px;padding:6px 2px}.date small{display:block;font-weight:500;color:var(--muted)}
+.links{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}.link{background:linear-gradient(135deg,#f4f8ff,#fff);border:1px solid #e7edf6;padding:12px;border-radius:10px;text-decoration:none;color:var(--text);font-size:14px}
+.note{margin-top:18px;padding:14px;background:#fafbfc;border-radius:12px;color:var(--muted);font-size:13px;line-height:1.6}.bottom{display:none}
+
+.reminder-banner{background:linear-gradient(135deg,#fff1ed,#fff8df);border:2px solid #f2a18f;border-radius:18px;padding:18px 20px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;gap:16px;box-shadow:0 8px 24px rgba(242,159,143,.12)}
+.reminder-banner strong{display:block;font-size:17px;margin-bottom:4px}.reminder-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.quick-done{border:0;border-radius:11px;padding:9px 13px;background:#e7f7f1;color:#24715f;font-weight:800;cursor:pointer;white-space:nowrap}.quick-done:hover{filter:brightness(.98)}.reminder-banner span{font-size:13px;color:#795e58}.deadline{font-weight:800;color:#d85f4a;white-space:nowrap}
+.task-list{display:grid;gap:10px}.task{border:1px solid var(--line);border-radius:13px;padding:13px 14px;display:flex;gap:12px;align-items:flex-start}.task .dot{width:10px;height:10px;border-radius:50%;margin-top:5px;flex:0 0 auto}.task.quiz .dot{background:#f2c66d}.task.assignment .dot{background:#f29f8f}.task-info{flex:1}.task-title{font-weight:700;font-size:14px}.task-sub{font-size:12px;color:var(--muted);margin-top:4px}.task-time{font-size:12px;font-weight:700;color:#d85f4a}
+.timetable-wrap{overflow-x:auto}.timetable{width:100%;border-collapse:separate;border-spacing:5px;min-width:650px}.timetable th{font-size:12px;color:var(--muted);padding:7px}.timetable td{height:66px;background:#fafbfc;border-radius:10px;text-align:center;padding:6px;font-size:12px;vertical-align:middle}.timetable td.course{background:#edf5ff;font-weight:700}.timetable td.course.alt{background:#eef9f5}.timetable td.course.warm{background:#fff4e2}.period{font-weight:700;color:var(--muted);width:54px}
+.modal-backdrop{position:fixed;inset:0;background:rgba(27,35,43,.48);display:none;align-items:center;justify-content:center;padding:20px;z-index:100}.modal-backdrop.show{display:flex}.modal{width:min(430px,100%);background:white;border-radius:22px;padding:25px;box-shadow:0 24px 70px rgba(0,0,0,.22);animation:pop .2s ease}.modal-icon{font-size:34px}.modal h3{font-size:21px;margin:10px 0 7px}.modal p{color:var(--muted);line-height:1.65;font-size:14px}.modal .due{background:#fff1ed;border-radius:12px;padding:12px;margin:15px 0;color:#b94e3b;font-weight:800}.modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.modal-actions button{padding:11px;border-radius:11px;border:1px solid var(--line);font-weight:700;cursor:pointer}.done{background:#eaf8f4;color:#287865}.later{background:#fff;color:#555}.dontask{display:block;margin:13px auto 0;border:0;background:none;color:var(--muted);font-size:12px;cursor:pointer}
+@keyframes pop{from{transform:scale(.96);opacity:0}to{transform:scale(1);opacity:1}}
+
+@media(max-width:760px){nav{display:none}.wrap{padding:0 14px}.top{height:58px}.brand{font-size:17px}.brand span{display:none}main{padding-top:18px}.hero{padding:22px;border-radius:17px}.hero h1{font-size:25px}.grid{grid-template-columns:1fr}.reminder-banner{align-items:flex-start;flex-direction:column}.reminder-actions{width:100%;justify-content:space-between}.modal-actions{grid-template-columns:1fr}section{padding:18px}.bottom{display:flex;position:fixed;bottom:0;left:0;right:0;height:calc(64px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);background:#fff;border-top:1px solid var(--line);justify-content:space-around;align-items:center;z-index:20}.bottom a{text-decoration:none;color:#555;font-size:12px;text-align:center}.bottom b{display:block;font-size:18px;margin-bottom:2px}}
+</style>
+</head>
+<body>
+<header><div class="wrap top"><div class="brand">五護101班 <span>班級公告欄</span></div><nav><a href="#home">首頁</a><a href="#notices">公告</a><a href="#calendar">行事曆</a><a href="#tasks">小考與作業</a><a href="#timetable">課表</a><a href="#rules">班規</a><a href="#links">常用連結</a></nav></div></header>
+<main class="wrap" id="home">
+<div class="hero"><small id="today"></small><h1>五護101班｜班級公告欄</h1><p>重要通知、近期行程與班級常用資訊，都整理在這裡。</p>
+<button class="install" id="installBtn">安裝「五護101班」到手機</button>
+<div class="ios-tip" id="iosTip">iPhone / iPad：請用 Safari 開啟此頁，點「分享」→「加入主畫面」，即可像 App 一樣從桌面開啟。</div></div>
+<div class="reminder-banner" id="urgentReminder">
+<div><strong>⚠️ 重要待辦｜基本護理學課前作業</strong><span><b>作業</b>｜請確認已完成並送出，避免只上傳但未按「繳交」。</span></div>
+<div class="reminder-actions"><div class="deadline">截止：9/18 23:59</div><button class="quick-done" id="quickDoneBtn">✓ 已完成／已繳交</button></div></div>
+<div class="grid"><div><section id="notices"><h2>📌 最新公告</h2><div class="filters">
+<button class="filter active" data-filter="全部">全部</button><button class="filter" data-filter="重要">重要</button><button class="filter" data-filter="課務">課務</button><button class="filter" data-filter="班務">班務</button><button class="filter" data-filter="活動">活動</button><button class="filter" data-filter="獎助學金">獎助學金</button><button class="filter" data-filter="其他">其他</button></div><div id="noticeList"></div></section>
+<section id="tasks" style="margin-top:22px"><h2>📝 小考、作業與待辦</h2>
+<div class="task-list">
+<div class="task assignment"><span class="dot"></span><div class="task-info"><div class="task-title">基本護理學｜課前作業</div><div class="task-sub">請於 Classroom 完成並確認已繳交</div></div><div class="task-time">9/18 截止</div></div>
+<div class="task quiz"><span class="dot"></span><div class="task-info"><div class="task-title">基本護理學｜小考</div><div class="task-sub">範圍：本週授課內容</div></div><div class="task-time">9/24</div></div>
+<div class="task assignment"><span class="dot"></span><div class="task-info"><div class="task-title">家長同意書</div><div class="task-sub">紙本｜請交給指定幹部</div></div><div class="task-time">9/25 截止</div></div>
+<div class="task assignment"><span class="dot"></span><div class="task-info"><div class="task-title">班級餐費</div><div class="task-sub">費用｜請依班級公告方式繳交</div></div><div class="task-time">9/26 截止</div></div>
+</div><div class="note">正式版可依截止日期自動排序，已完成的項目可隱藏或標示完成。</div>
+</section></div>
+<div><section id="calendar"><h2>📅 近期行程</h2>
+<div class="event"><div class="date">18<small>SEP</small></div><div><b>基本護理學實驗</b><div class="meta">08:15–10:05｜課務</div></div></div>
+<div class="event"><div class="date">21<small>SEP</small></div><div><b>班會</b><div class="meta">12:30–13:20｜班務</div></div></div>
+<div class="event"><div class="date">24<small>SEP</small></div><div><b>基本護理學小考</b><div class="meta">10:15–10:35｜課務</div></div></div>
+<div class="note">下一階段可串接班級 Google Calendar，讓老師更新行事曆後自動同步到這裡。</div></section>
+<section id="timetable" style="margin-top:22px"><h2>📚 本週課表</h2>
+<div class="timetable-wrap"><table class="timetable">
+<tr><th></th><th>週一</th><th>週二</th><th>週三</th><th>週四</th><th>週五</th></tr>
+<tr><td class="period">1–2</td><td></td><td class="course warm">課程</td><td class="course">課程</td><td></td><td class="course alt">課程</td></tr>
+<tr><td class="period">3–4</td><td class="course">課程</td><td></td><td class="course alt">課程</td><td class="course warm">課程</td><td></td></tr>
+<tr><td class="period">5–6</td><td class="course alt">課程</td><td class="course">課程</td><td></td><td class="course">課程</td><td class="course warm">課程</td></tr>
+<tr><td class="period">7–8</td><td></td><td class="course alt">課程</td><td class="course warm">課程</td><td></td><td class="course">課程</td></tr>
+</table></div>
+<div class="note">目前先以示意課表呈現。之後可換成五護101班的實際課表，並讓臨時調課以醒目標籤顯示。</div></section>
+<section id="rules" style="margin-top:22px"><h2>📌 班級規範</h2>
+<a class="link" href="#" id="classRulesLink" style="display:flex;align-items:center;justify-content:space-between;gap:14px;text-decoration:none">
+<div><b>五護101班｜班規</b><div class="meta" style="margin-top:5px">查看班級共同約定、生活規範與重要注意事項</div></div>
+<span style="font-size:20px">›</span></a>
+<div class="note">目前先保留班規入口；之後可連到班規網頁、PDF、Google 文件，或直接做成 PWA 內頁。</div>
+</section>
+<section id="links" style="margin-top:22px"><h2>🔗 常用連結</h2><div class="links"><a class="link" href="#">Google Classroom</a><a class="link" href="#">Google Calendar</a><a class="link" href="#">Moodle</a><a class="link" href="#">學校首頁</a><a class="link" href="#">請假系統</a><a class="link" href="#">常用表單</a></div></section></div></div>
+</main>
+<div class="bottom"><a href="#home"><b>⌂</b>首頁</a><a href="#notices"><b>▣</b>公告</a><a href="#tasks"><b>✓</b>提醒</a><a href="#timetable"><b>▦</b>課表</a></div>
+<div class="modal-backdrop" id="submitModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+<div class="modal"><div class="modal-icon">📮</div><div class="meta"><span class="badge">作業</span>重要待辦提醒</div>
+<h3 id="modalTitle">基本護理學課前作業完成了嗎？</h3>
+<p>這裡會依待辦類型顯示不同文字，例如「作業是否已繳交」、「餐費是否已繳交」、「同意書是否已交回」。</p><div class="due">⏰ 9/18 23:59 前完成</div>
+<div class="modal-actions"><button class="done" id="doneBtn">✓ 已完成</button><button class="later" id="laterBtn">還沒，稍後提醒</button></div>
+<button class="dontask" id="closeBtn">先關閉這次提醒</button></div></div>
+<script>
+const notices=[
+{date:"2026/09/16",cat:"重要",title:"11/27 新生急救教育訓練",body:"請同學留意活動時間與後續班級通知。本公告可設定為置頂的重要事項。"},
+{date:"2026/09/15",cat:"課務",title:"本週基本護理學上課提醒",body:"請依課程通知準備上課用品，並留意 Classroom 上的最新訊息。"},
+{date:"2026/09/14",cat:"班務",title:"本週班會事項",body:"班會相關事項與需要討論的班務將統一公告於此。"},
+{date:"2026/09/13",cat:"活動",title:"新生活動通知",body:"活動詳細時間、集合地點及注意事項可放在公告完整內容中。"},
+{date:"2026/09/10",cat:"獎助學金",title:"獎助學金申請資訊",body:"符合資格的同學請留意申請期限及應備文件。"}];
+function render(filter="全部"){const box=document.querySelector("#noticeList");box.innerHTML="";notices.filter(n=>filter==="全部"||n.cat===filter).forEach(n=>{const el=document.createElement("div");el.className="notice";el.innerHTML=`<div class="meta"><span class="badge">${n.cat}</span>${n.date}</div><div class="title">${n.title}</div><div class="body">${n.body}</div>`;el.onclick=()=>el.classList.toggle("open");box.appendChild(el)})}
+document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-filter]").forEach(x=>x.classList.remove("active"));b.classList.add("active");render(b.dataset.filter)});
+const d=new Date();document.querySelector("#today").textContent=`今天是 ${d.getFullYear()} 年 ${d.getMonth()+1} 月 ${d.getDate()} 日`;render();
+if("serviceWorker" in navigator) window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js"));
+let deferredPrompt;const ib=document.querySelector("#installBtn");
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt=e;ib.style.display="inline-block"});
+ib.onclick=async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;ib.style.display="none"};
+const isiOS=/iphone|ipad|ipod/i.test(navigator.userAgent);const standalone=window.matchMedia("(display-mode: standalone)").matches||navigator.standalone;
+if(isiOS&&!standalone) document.querySelector("#iosTip").style.display="block";
+
+const modal=document.querySelector("#submitModal");
+const taskKey="class101_task_demo_20260918";
+const snoozeKey=taskKey+"_snooze";
+const demoDue=new Date(Date.now()+36*60*60*1000); // prototype: simulate a deadline within 2–3 days
+function openReminder(){
+ const status=localStorage.getItem(taskKey);
+ const snoozeUntil=Number(localStorage.getItem(snoozeKey)||0);
+ const hoursLeft=(demoDue-Date.now())/3600000;
+ // Only interrupt when due within 72 hours, unfinished, and not currently snoozed.
+ if(status!=="done" && hoursLeft>=0 && hoursLeft<=72 && Date.now()>snoozeUntil){
+   setTimeout(()=>modal.classList.add("show"),500);
+ }
+ if(status==="done") document.querySelector("#urgentReminder").style.display="none";
+}
+function markTaskDone(){
+ localStorage.setItem(taskKey,"done");
+ localStorage.removeItem(snoozeKey);
+ modal.classList.remove("show");
+ document.querySelector("#urgentReminder").style.display="none";
+}
+document.querySelector("#doneBtn").onclick=markTaskDone;
+document.querySelector("#quickDoneBtn").onclick=markTaskDone;
+document.querySelector("#laterBtn").onclick=()=>{
+ // Formal version: do not nag repeatedly in the same visit; snooze for 12 hours.
+ localStorage.setItem(snoozeKey,String(Date.now()+12*60*60*1000));
+ modal.classList.remove("show");
+};
+document.querySelector("#closeBtn").onclick=()=>{
+ // Closing only suppresses this page view; it can remind again on a later visit.
+ modal.classList.remove("show");
+};
+modal.onclick=e=>{if(e.target===modal) modal.classList.remove("show")};
+openReminder();
+</script></body></html>
