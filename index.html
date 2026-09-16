@@ -156,10 +156,7 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 </div><div class="note">正式版可依截止日期自動排序，已完成的項目可隱藏或標示完成。</div>
 </section></div>
 <div><section id="calendar"><h2>📅 近期行程</h2>
-<div class="event"><div class="date">18<small>SEP</small></div><div><b>基本護理學實驗</b><div class="meta">08:15–10:05｜課務</div></div></div>
-<div class="event"><div class="date">21<small>SEP</small></div><div><b>班會</b><div class="meta">12:30–13:20｜班務</div></div></div>
-<div class="event"><div class="date">24<small>SEP</small></div><div><b>基本護理學小考</b><div class="meta">10:15–10:35｜課務</div></div></div>
-<div class="note">下一階段可串接班級 Google Calendar，讓老師更新行事曆後自動同步到這裡。</div></section>
+<div id="calendarEvents"><div class="note">正在準備班級行事曆…</div></div></section>
 <section id="timetable" style="margin-top:22px"><h2>📚 本週課表</h2>
 <div class="timetable-wrap"><table class="timetable">
 <tr><th></th><th>週一</th><th>週二</th><th>週三</th><th>週四</th><th>週五</th></tr>
@@ -186,12 +183,16 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 <button class="dontask" id="closeBtn">先關閉這次提醒</button></div></div>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, reauthenticateWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 const firebaseConfig={apiKey:"AIzaSyDriaciyyXKRP6LE5emJDnvwPDA5QucUW0",authDomain:"ntin115-5n01.firebaseapp.com",projectId:"ntin115-5n01",storageBucket:"ntin115-5n01.firebasestorage.app",messagingSenderId:"145636669643",appId:"1:145636669643:web:827aa85da0cc7942eec34e"};
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
 const provider=new GoogleAuthProvider();
 provider.setCustomParameters({hd:"ntin.edu.tw",prompt:"select_account"});
+provider.addScope("https://www.googleapis.com/auth/calendar.events.readonly");
+
+const CALENDAR_ID="c_classroom8b940f16@group.calendar.google.com";
+let calendarAccessToken=null;
 
 const gate=document.querySelector("#accessGate");
 const gateLoading=document.querySelector("#gateLoading");
@@ -209,6 +210,57 @@ function showError(message,error=null){
   loginBtn.style.display="inline-block";
 }
 
+function escHtml(value=""){
+  return String(value).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+}
+function formatCalendarTime(event){
+  if(event.start?.date && !event.start?.dateTime) return "全天";
+  const start=new Date(event.start?.dateTime);
+  const end=event.end?.dateTime?new Date(event.end.dateTime):null;
+  const fmt=new Intl.DateTimeFormat("zh-TW",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Asia/Taipei"});
+  return end?`${fmt.format(start)}–${fmt.format(end)}`:fmt.format(start);
+}
+function renderCalendarEvents(items){
+  const box=document.querySelector("#calendarEvents");
+  if(!items.length){box.innerHTML='<div class="note">目前沒有近期班級行程。</div>';return;}
+  const monthFmt=new Intl.DateTimeFormat("en-US",{month:"short",timeZone:"Asia/Taipei"});
+  const dayFmt=new Intl.DateTimeFormat("en-US",{day:"2-digit",timeZone:"Asia/Taipei"});
+  box.innerHTML=items.map(event=>{
+    const raw=event.start?.dateTime||event.start?.date;
+    const dt=event.start?.dateTime?new Date(raw):new Date(`${raw}T00:00:00+08:00`);
+    const location=event.location?`｜${escHtml(event.location)}`:"";
+    return `<div class="event"><div class="date">${dayFmt.format(dt)}<small>${monthFmt.format(dt).toUpperCase()}</small></div><div><b>${escHtml(event.summary||"未命名行程")}</b><div class="meta">${formatCalendarTime(event)}${location}</div></div></div>`;
+  }).join("");
+}
+async function loadCalendarEvents(token){
+  const box=document.querySelector("#calendarEvents");
+  if(!token){
+    box.innerHTML='<div class="note">行事曆授權已過期。<button class="auth-btn" id="calendarReconnectBtn" style="margin-top:10px">重新授權行事曆</button></div>';
+    document.querySelector("#calendarReconnectBtn").onclick=async()=>{
+      try{
+        const result=await reauthenticateWithPopup(auth.currentUser,provider);
+        const credential=GoogleAuthProvider.credentialFromResult(result);
+        calendarAccessToken=credential?.accessToken||null;
+        await loadCalendarEvents(calendarAccessToken);
+      }catch(error){console.error("Calendar reauthorization failed:",error);}
+    };
+    return;
+  }
+  box.innerHTML='<div class="note">正在載入班級行程…</div>';
+  try{
+    const params=new URLSearchParams({timeMin:new Date().toISOString(),singleEvents:"true",orderBy:"startTime",maxResults:"8",timeZone:"Asia/Taipei"});
+    const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?${params}`;
+    const response=await fetch(url,{headers:{Authorization:`Bearer ${token}`}});
+    if(response.status===401){calendarAccessToken=null;return loadCalendarEvents(null);}
+    if(!response.ok) throw new Error(`Calendar API ${response.status}`);
+    const data=await response.json();
+    renderCalendarEvents(data.items||[]);
+  }catch(error){
+    console.error("Calendar API error:",error);
+    box.innerHTML='<div class="note">班級行事曆目前無法載入，請稍後再試。</div>';
+  }
+}
+
 async function initAuth(){
   try{
     await setPersistence(auth,browserLocalPersistence);
@@ -219,6 +271,8 @@ async function initAuth(){
       gateLoading.style.display="block";
       try{
         const result=await signInWithPopup(auth,provider);
+        const credential=GoogleAuthProvider.credentialFromResult(result);
+        calendarAccessToken=credential?.accessToken||null;
         const email=(result.user.email||"").toLowerCase();
         if(!email.endsWith("@ntin.edu.tw")){
           await signOut(auth);
@@ -256,6 +310,7 @@ async function initAuth(){
       document.querySelector("#userPhoto").src=user.photoURL||"icon-192.png";
       userBox.style.display="flex";
       gate.style.display="none";
+      await loadCalendarEvents(calendarAccessToken);
     });
   }catch(error){
     showError("Firebase 登入服務初始化失敗。",error);
