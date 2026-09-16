@@ -107,6 +107,23 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
   .dontask{font-size:14px}
 }
 
+
+/* v7.4：手機卡片寬度統一 */
+@media(max-width:760px){
+  .reminder-banner,
+  .grid,
+  .grid > div,
+  .grid section{
+    width:100%;
+    max-width:none;
+  }
+
+  .reminder-banner{
+    margin-left:0;
+    margin-right:0;
+  }
+}
+
 </style>
 </head>
 <body><div class="access-gate" id="accessGate"><div class="gate-card"><div class="gate-mark">🏫</div><h2>五護101班｜班級公告欄</h2><p>請使用國立臺南護理專科學校 Google 帳號登入，以查看班級公告與行程。</p><button class="auth-btn primary" id="googleLoginBtn">使用 NTIN Google 帳號登入</button><div class="gate-loading" id="gateLoading">正在確認登入狀態…</div><div class="gate-error" id="gateError"></div></div></div>
