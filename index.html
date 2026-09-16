@@ -108,7 +108,7 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 }
 
 
-/* v7.5：手機首頁所有主要卡片完全同寬 */
+/* v7.6：修正手機 Grid 被課表最小寬度撐大的問題 */
 @media(max-width:760px){
   .hero,
   .reminder-banner,
@@ -116,9 +116,21 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
   .grid > div,
   .grid section{
     width:100%;
-    max-width:none;
+    max-width:100%;
+    min-width:0;
     margin-left:0;
     margin-right:0;
+  }
+
+  .grid{
+    grid-template-columns:minmax(0,1fr);
+  }
+
+  .timetable-wrap{
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    overflow-x:auto;
   }
 }
 
