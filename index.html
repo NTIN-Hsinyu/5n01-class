@@ -188,9 +188,11 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, reauthenticateWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 const firebaseConfig={apiKey:"AIzaSyDriaciyyXKRP6LE5emJDnvwPDA5QucUW0",authDomain:"ntin115-5n01.firebaseapp.com",projectId:"ntin115-5n01",storageBucket:"ntin115-5n01.firebasestorage.app",messagingSenderId:"145636669643",appId:"1:145636669643:web:827aa85da0cc7942eec34e"};
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
+const db=getFirestore(app);
 const provider=new GoogleAuthProvider();
 provider.setCustomParameters({hd:"ntin.edu.tw",prompt:"select_account"});
 provider.addScope("https://www.googleapis.com/auth/calendar.events.readonly");
@@ -309,12 +311,48 @@ async function initAuth(){
         showError("此班網目前僅開放 @ntin.edu.tw 學校帳號登入。");
         return;
       }
-      document.querySelector("#userName").textContent=user.displayName||"NTIN 使用者";
-      document.querySelector("#userEmail").textContent=user.email||"";
-      document.querySelector("#userPhoto").src=user.photoURL||"icon-192.png";
-      userBox.style.display="flex";
-      gate.style.display="none";
-      await loadCalendarEvents(calendarAccessToken);
+      // Firestore 班級成員驗證：users/{uid} 必須存在且 active = true
+      gate.style.display="flex";
+      gateLoading.textContent="正在確認班級成員身分…";
+      gateLoading.style.display="block";
+      loginBtn.style.display="none";
+
+      try{
+        const memberSnap=await getDoc(doc(db,"users",user.uid));
+
+        if(!memberSnap.exists()){
+          await signOut(auth);
+          showError("此帳號尚未加入五護101班名單，請洽班級導師。");
+          return;
+        }
+
+        const member=memberSnap.data();
+        if(member.active !== true){
+          await signOut(auth);
+          showError("此帳號目前未啟用班級存取權限，請洽班級導師。");
+          return;
+        }
+
+        const roleLabels={
+          advisor:"導師",
+          officer:"班級幹部",
+          student:"學生"
+        };
+        const roleLabel=roleLabels[member.role]||"班級成員";
+
+        document.querySelector("#userName").textContent=member.name||user.displayName||"NTIN 使用者";
+        document.querySelector("#userEmail").textContent=`${roleLabel}｜${member.email||user.email||""}`;
+        document.querySelector("#userPhoto").src=user.photoURL||"icon-192.png";
+        userBox.style.display="flex";
+        gateLoading.style.display="none";
+        gate.style.display="none";
+
+        await loadCalendarEvents(calendarAccessToken);
+      }catch(error){
+        console.error("Firestore member verification failed:",error);
+        await signOut(auth);
+        showError("無法確認班級成員身分，請稍後再試。",error);
+      }
     });
   }catch(error){
     showError("Firebase 登入服務初始化失敗。",error);
