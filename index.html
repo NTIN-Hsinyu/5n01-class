@@ -174,6 +174,20 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
   .notice-detail-content{font-size:16px;line-height:1.8}
 }
 
+
+/* v8.2：公告編輯／刪除 */
+.notice-manage-actions{display:none;gap:9px;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.notice-manage-actions.show{display:flex}
+.notice-edit-btn,.notice-delete-btn{border-radius:10px;padding:10px 14px;font-weight:800;cursor:pointer}
+.notice-edit-btn{border:1px solid #cfe0f5;background:#f7fbff;color:#356fa8}
+.notice-delete-btn{border:1px solid #f2c5bc;background:#fff4f1;color:#b64d3a}
+.danger-confirm{background:#fff1ed;color:#a64d3c}
+@media(max-width:760px){
+  .notice-manage-actions{display:none;grid-template-columns:1fr 1fr}
+  .notice-manage-actions.show{display:grid}
+  .notice-edit-btn,.notice-delete-btn{font-size:15px}
+}
+
 </style>
 </head>
 <body><div class="access-gate" id="accessGate"><div class="gate-card"><div class="gate-mark">🏫</div><h2>五護101班｜班級公告欄</h2><p>請使用國立臺南護理專科學校 Google 帳號登入，以查看班級公告與行程。</p><button class="auth-btn primary" id="googleLoginBtn">使用 NTIN Google 帳號登入</button><div class="gate-loading" id="gateLoading">正在確認登入狀態…</div><div class="gate-error" id="gateError"></div></div></div>
@@ -227,6 +241,23 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
       <button class="notice-close" id="noticeDetailClose" aria-label="關閉公告">×</button>
     </div>
     <div class="notice-detail-content" id="noticeDetailContent"></div>
+    <div class="notice-manage-actions" id="noticeManageActions">
+      <button class="notice-edit-btn" id="editNoticeBtn">編輯公告</button>
+      <button class="notice-delete-btn" id="deleteNoticeBtn">刪除公告</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal-backdrop" id="deleteNoticeBackdrop" role="dialog" aria-modal="true" aria-labelledby="deleteNoticeTitle">
+  <div class="modal">
+    <div class="modal-icon">🗑️</div>
+    <h3 id="deleteNoticeTitle">確定刪除這則公告？</h3>
+    <p>刪除後將無法復原，班級成員也會立即看不到這則公告。</p>
+    <div class="modal-actions">
+      <button class="notice-delete-btn" id="confirmDeleteNoticeBtn">確定刪除</button>
+      <button class="later" id="cancelDeleteNoticeBtn">取消</button>
+    </div>
   </div>
 </div>
 
@@ -267,7 +298,7 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, reauthenticateWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-import { getFirestore, doc, getDoc, collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 const firebaseConfig={apiKey:"AIzaSyDriaciyyXKRP6LE5emJDnvwPDA5QucUW0",authDomain:"ntin115-5n01.firebaseapp.com",projectId:"ntin115-5n01",storageBucket:"ntin115-5n01.firebasestorage.app",messagingSenderId:"145636669643",appId:"1:145636669643:web:827aa85da0cc7942eec34e"};
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
@@ -282,6 +313,8 @@ let currentMember=null;
 let firestoreNotices=[];
 let currentNoticeFilter="全部";
 let unsubscribeAnnouncements=null;
+let selectedNotice=null;
+let editingNoticeId=null;
 
 const gate=document.querySelector("#accessGate");
 const gateLoading=document.querySelector("#gateLoading");
@@ -358,12 +391,20 @@ function formatAnnouncementDate(timestamp){
 }
 
 
+function canManageNotice(notice){
+  if(!auth.currentUser || !currentMember) return false;
+  if(currentMember.role==="advisor") return true;
+  return currentMember.role==="officer" && notice.authorUid===auth.currentUser.uid;
+}
+
 function openNoticeDetail(notice){
+  selectedNotice=notice;
   const backdrop=document.querySelector("#noticeDetailBackdrop");
   const pin=notice.pinned===true ? "📌 置頂｜" : "";
   document.querySelector("#noticeDetailMeta").innerHTML=`<span class="badge">${escHtml(notice.category||"其他")}</span>${pin}${escHtml(formatAnnouncementDate(notice.createdAt))}`;
   document.querySelector("#noticeDetailTitle").textContent=notice.title||"未命名公告";
   document.querySelector("#noticeDetailContent").textContent=notice.content||"";
+  document.querySelector("#noticeManageActions").classList.toggle("show",canManageNotice(notice));
   backdrop.classList.add("show");
   document.body.style.overflow="hidden";
 }
@@ -430,8 +471,17 @@ function updateAnnouncementControls(member){
   btn.style.display=(member?.role==="advisor"||member?.role==="officer")?"inline-block":"none";
 }
 
-function openAnnouncementModal(){
+function openAnnouncementModal(notice=null){
   if(!(currentMember?.role==="advisor"||currentMember?.role==="officer")) return;
+  if(notice && !canManageNotice(notice)) return;
+
+  editingNoticeId=notice?.id||null;
+  document.querySelector("#announcementModalTitle").textContent=editingNoticeId?"編輯班級公告":"新增班級公告";
+  document.querySelector("#publishAnnouncementBtn").textContent=editingNoticeId?"儲存修改":"發布公告";
+  document.querySelector("#announcementCategory").value=notice?.category||"班務";
+  document.querySelector("#announcementTitle").value=notice?.title||"";
+  document.querySelector("#announcementContent").value=notice?.content||"";
+  document.querySelector("#announcementPinned").checked=notice?.pinned===true;
   document.querySelector("#announcementError").style.display="none";
   document.querySelector("#announcementModal").classList.add("show");
 }
@@ -459,33 +509,85 @@ async function publishAnnouncement(){
   publishBtn.textContent="發布中…";
   errorBox.style.display="none";
   try{
-    await addDoc(collection(db,"announcements"),{
-      title,
-      content,
-      category,
-      pinned,
-      published:true,
-      authorUid:auth.currentUser.uid,
-      authorName:currentMember.name||auth.currentUser.displayName||"",
-      createdAt:serverTimestamp()
-    });
+    if(editingNoticeId){
+      await updateDoc(doc(db,"announcements",editingNoticeId),{
+        title,
+        content,
+        category,
+        pinned,
+        updatedAt:serverTimestamp()
+      });
+    }else{
+      await addDoc(collection(db,"announcements"),{
+        title,
+        content,
+        category,
+        pinned,
+        published:true,
+        authorUid:auth.currentUser.uid,
+        authorName:currentMember.name||auth.currentUser.displayName||"",
+        createdAt:serverTimestamp()
+      });
+    }
+    editingNoticeId=null;
     document.querySelector("#announcementTitle").value="";
     document.querySelector("#announcementContent").value="";
     document.querySelector("#announcementCategory").value="班務";
     document.querySelector("#announcementPinned").checked=false;
     document.querySelector("#announcementModal").classList.remove("show");
+    closeNoticeDetail();
   }catch(error){
     console.error("Announcement publish failed:",error);
     errorBox.textContent="公告發布失敗，請確認 Firestore 規則與帳號權限。";
     errorBox.style.display="block";
   }finally{
     publishBtn.disabled=false;
-    publishBtn.textContent="發布公告";
+    publishBtn.textContent=document.querySelector("#announcementModalTitle").textContent.startsWith("編輯")?"儲存修改":"發布公告";
   }
 }
 
-document.querySelector("#addNoticeBtn").onclick=openAnnouncementModal;
-document.querySelector("#cancelAnnouncementBtn").onclick=()=>document.querySelector("#announcementModal").classList.remove("show");
+
+document.querySelector("#editNoticeBtn").onclick=()=>{
+  if(!selectedNotice || !canManageNotice(selectedNotice)) return;
+  document.querySelector("#noticeDetailBackdrop").classList.remove("show");
+  document.body.style.overflow="";
+  openAnnouncementModal(selectedNotice);
+};
+
+document.querySelector("#deleteNoticeBtn").onclick=()=>{
+  if(!selectedNotice || !canManageNotice(selectedNotice)) return;
+  document.querySelector("#deleteNoticeBackdrop").classList.add("show");
+};
+
+document.querySelector("#cancelDeleteNoticeBtn").onclick=()=>document.querySelector("#deleteNoticeBackdrop").classList.remove("show");
+document.querySelector("#deleteNoticeBackdrop").onclick=e=>{
+  if(e.target===document.querySelector("#deleteNoticeBackdrop")) document.querySelector("#deleteNoticeBackdrop").classList.remove("show");
+};
+
+document.querySelector("#confirmDeleteNoticeBtn").onclick=async()=>{
+  if(!selectedNotice || !canManageNotice(selectedNotice)) return;
+  const btn=document.querySelector("#confirmDeleteNoticeBtn");
+  btn.disabled=true;
+  btn.textContent="刪除中…";
+  try{
+    await deleteDoc(doc(db,"announcements",selectedNotice.id));
+    document.querySelector("#deleteNoticeBackdrop").classList.remove("show");
+    closeNoticeDetail();
+    selectedNotice=null;
+  }catch(error){
+    console.error("Announcement delete failed:",error);
+    alert("公告刪除失敗，請確認帳號權限後再試。");
+  }finally{
+    btn.disabled=false;
+    btn.textContent="確定刪除";
+  }
+};
+
+document.querySelector("#addNoticeBtn").onclick=()=>openAnnouncementModal();
+document.querySelector("#cancelAnnouncementBtn").onclick=()=>{
+  editingNoticeId=null;
+  document.querySelector("#announcementModal").classList.remove("show");
+};
 document.querySelector("#publishAnnouncementBtn").onclick=publishAnnouncement;
 document.querySelector("#announcementModal").onclick=e=>{
   if(e.target===document.querySelector("#announcementModal")) document.querySelector("#announcementModal").classList.remove("show");
