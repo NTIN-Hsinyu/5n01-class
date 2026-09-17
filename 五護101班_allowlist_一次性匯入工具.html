@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>五護101班｜Allowlist 匯入工具</title>
+<style>
+:root{--bg:#fff9f5;--card:#fff;--text:#263238;--muted:#748087;--line:#eee7e2;--accent:#4f7cac;--ok:#24715f;--danger:#b64d3a}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif;background:var(--bg);color:var(--text)}
+.wrap{max-width:900px;margin:auto;padding:28px 18px 60px}.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:24px;margin-bottom:18px}
+h1{font-size:27px;margin:0 0 8px}h2{font-size:19px;margin:0 0 14px}p{line-height:1.7;color:var(--muted)}code{font-size:.92em}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}button{border:1px solid var(--line);border-radius:11px;padding:10px 14px;background:#fff;font-weight:800;cursor:pointer}button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}button:disabled{opacity:.5;cursor:not-allowed}
+.status{margin-top:14px;padding:12px;border-radius:11px;background:#f7f9fb;line-height:1.6}.ok{color:var(--ok)}.danger{color:var(--danger)}.warning{background:#fff6e4;color:#8a6421}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left}th{position:sticky;top:0;background:#fff}.table-wrap{max-height:440px;overflow:auto;border:1px solid var(--line);border-radius:12px}.pill{display:inline-block;padding:3px 8px;border-radius:999px;background:#eef5ff;font-size:12px}
+@media(max-width:650px){.wrap{padding:16px 10px 40px}.card{padding:18px 14px}h1{font-size:23px}table{font-size:12px}th,td{padding:8px 5px}}
+</style>
+</head>
+<body><div class="wrap">
+<div class="card">
+<h1>五護101班｜Allowlist 一次性匯入工具</h1>
+<p>已依你上傳的班級名單內建 <b>53 位</b>有完整資料的學生。登入導師帳號後，可一次寫入 Firestore <code>allowlist/{email}</code>。</p>
+<div class="status warning">注意：原始 Excel 實際有 53 位學生資料，學號由 511501148 直接跳到 511501150，沒有 511501149；最後一列為空白。因此本工具不會自行猜測第 54 位學生。</div>
+<div class="toolbar" style="margin-top:14px"><button class="primary" id="loginBtn">使用 NTIN Google 帳號登入</button><button id="logoutBtn" style="display:none">登出</button><button class="primary" id="importBtn" disabled>匯入 53 位學生</button></div>
+<div class="status" id="status">尚未登入。</div>
+</div>
+<div class="card"><h2>準備匯入的學生 <span class="pill">53 人</span></h2>
+<div class="table-wrap"><table><thead><tr><th>學號</th><th>姓名</th><th>Email</th><th>狀態</th></tr></thead><tbody id="rows"></tbody></table></div></div>
+</div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, writeBatch } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+const firebaseConfig={"apiKey": "AIzaSyDriaciyyXKRP6LE5emJDnvwPDA5QucUW0", "authDomain": "ntin115-5n01.firebaseapp.com", "projectId": "ntin115-5n01", "storageBucket": "ntin115-5n01.firebasestorage.app", "messagingSenderId": "145636669643", "appId": "1:145636669643:web:827aa85da0cc7942eec34e"};
+const students=[{"studentId": "511501101", "name": "王品翔", "email": "s511501101@ntin.edu.tw", "active": true}, {"studentId": "511501102", "name": "王祐萱", "email": "s511501102@ntin.edu.tw", "active": true}, {"studentId": "511501103", "name": "王梓蓉", "email": "s511501103@ntin.edu.tw", "active": true}, {"studentId": "511501104", "name": "王楷媞", "email": "s511501104@ntin.edu.tw", "active": true}, {"studentId": "511501105", "name": "朱韻萍", "email": "s511501105@ntin.edu.tw", "active": true}, {"studentId": "511501106", "name": "吳佳晏", "email": "s511501106@ntin.edu.tw", "active": true}, {"studentId": "511501107", "name": "吳佳蓁", "email": "s511501107@ntin.edu.tw", "active": true}, {"studentId": "511501108", "name": "吳承澤", "email": "s511501108@ntin.edu.tw", "active": true}, {"studentId": "511501109", "name": "吳姵賢", "email": "s511501109@ntin.edu.tw", "active": true}, {"studentId": "511501110", "name": "宋采妍", "email": "s511501110@ntin.edu.tw", "active": true}, {"studentId": "511501111", "name": "李函霏", "email": "s511501111@ntin.edu.tw", "active": true}, {"studentId": "511501112", "name": "李宜蓉", "email": "s511501112@ntin.edu.tw", "active": true}, {"studentId": "511501113", "name": "李承宥", "email": "s511501113@ntin.edu.tw", "active": true}, {"studentId": "511501114", "name": "李昕瑜", "email": "s511501114@ntin.edu.tw", "active": true}, {"studentId": "511501115", "name": "杜怡璇", "email": "s511501115@ntin.edu.tw", "active": true}, {"studentId": "511501116", "name": "周莘茹", "email": "s511501116@ntin.edu.tw", "active": true}, {"studentId": "511501117", "name": "林沛岑", "email": "s511501117@ntin.edu.tw", "active": true}, {"studentId": "511501118", "name": "林昕萮", "email": "s511501118@ntin.edu.tw", "active": true}, {"studentId": "511501119", "name": "林品姍", "email": "s511501119@ntin.edu.tw", "active": true}, {"studentId": "511501120", "name": "林韋圻", "email": "s511501120@ntin.edu.tw", "active": true}, {"studentId": "511501121", "name": "林歆愉", "email": "s511501121@ntin.edu.tw", "active": true}, {"studentId": "511501122", "name": "林嘉榮", "email": "s511501122@ntin.edu.tw", "active": true}, {"studentId": "511501123", "name": "柯羽柔", "email": "s511501123@ntin.edu.tw", "active": true}, {"studentId": "511501124", "name": "洪心愉", "email": "s511501124@ntin.edu.tw", "active": true}, {"studentId": "511501125", "name": "徐瑄妤", "email": "s511501125@ntin.edu.tw", "active": true}, {"studentId": "511501126", "name": "張絜宥", "email": "s511501126@ntin.edu.tw", "active": true}, {"studentId": "511501127", "name": "莊品言", "email": "s511501127@ntin.edu.tw", "active": true}, {"studentId": "511501128", "name": "許月瓅", "email": "s511501128@ntin.edu.tw", "active": true}, {"studentId": "511501129", "name": "陳姿彤", "email": "s511501129@ntin.edu.tw", "active": true}, {"studentId": "511501130", "name": "陳宥妘", "email": "s511501130@ntin.edu.tw", "active": true}, {"studentId": "511501131", "name": "陳思瑜", "email": "s511501131@ntin.edu.tw", "active": true}, {"studentId": "511501132", "name": "陳渝璇", "email": "s511501132@ntin.edu.tw", "active": true}, {"studentId": "511501133", "name": "湯鈞傑", "email": "s511501133@ntin.edu.tw", "active": true}, {"studentId": "511501134", "name": "黃子薰", "email": "s511501134@ntin.edu.tw", "active": true}, {"studentId": "511501135", "name": "黃云柔", "email": "s511501135@ntin.edu.tw", "active": true}, {"studentId": "511501136", "name": "黃東詠", "email": "s511501136@ntin.edu.tw", "active": true}, {"studentId": "511501137", "name": "黃昱勛", "email": "s511501137@ntin.edu.tw", "active": true}, {"studentId": "511501138", "name": "黃晨茵", "email": "s511501138@ntin.edu.tw", "active": true}, {"studentId": "511501139", "name": "黃意恬", "email": "s511501139@ntin.edu.tw", "active": true}, {"studentId": "511501140", "name": "黃詩涵", "email": "s511501140@ntin.edu.tw", "active": true}, {"studentId": "511501141", "name": "楊晏寧", "email": "s511501141@ntin.edu.tw", "active": true}, {"studentId": "511501142", "name": "趙甯浠", "email": "s511501142@ntin.edu.tw", "active": true}, {"studentId": "511501143", "name": "劉名芯", "email": "s511501143@ntin.edu.tw", "active": true}, {"studentId": "511501144", "name": "劉語潔", "email": "s511501144@ntin.edu.tw", "active": true}, {"studentId": "511501145", "name": "蔡孟晴", "email": "s511501145@ntin.edu.tw", "active": true}, {"studentId": "511501146", "name": "蔡捷渝", "email": "s511501146@ntin.edu.tw", "active": true}, {"studentId": "511501147", "name": "鄧芮昕", "email": "s511501147@ntin.edu.tw", "active": true}, {"studentId": "511501148", "name": "盧奕丞", "email": "s511501148@ntin.edu.tw", "active": true}, {"studentId": "511501150", "name": "賴姿辰", "email": "s511501150@ntin.edu.tw", "active": true}, {"studentId": "511501151", "name": "戴恩杏", "email": "s511501151@ntin.edu.tw", "active": true}, {"studentId": "511501152", "name": "謝欣貝", "email": "s511501152@ntin.edu.tw", "active": true}, {"studentId": "511501153", "name": "謝裕真", "email": "s511501153@ntin.edu.tw", "active": true}, {"studentId": "511501154", "name": "鐘語晴", "email": "s511501154@ntin.edu.tw", "active": true}];
+const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
+const provider=new GoogleAuthProvider();provider.setCustomParameters({hd:"ntin.edu.tw",prompt:"select_account"});
+const loginBtn=document.querySelector("#loginBtn"),logoutBtn=document.querySelector("#logoutBtn"),importBtn=document.querySelector("#importBtn"),status=document.querySelector("#status"),tbody=document.querySelector("#rows");
+tbody.innerHTML=students.map(s=>`<tr><td>${s.studentId}</td><td>${s.name}</td><td>${s.email}</td><td class="rowStatus">待匯入</td></tr>`).join("");
+function setStatus(msg,cls=""){status.className="status "+cls;status.textContent=msg}
+loginBtn.onclick=async()=>{try{await signInWithPopup(auth,provider)}catch(e){setStatus("登入失敗："+e.message,"danger")}};
+logoutBtn.onclick=()=>signOut(auth);
+onAuthStateChanged(auth,async user=>{
+ importBtn.disabled=true;
+ if(!user){loginBtn.style.display="inline-block";logoutBtn.style.display="none";setStatus("尚未登入。");return}
+ loginBtn.style.display="none";logoutBtn.style.display="inline-block";
+ const email=(user.email||"").toLowerCase();
+ if(!email.endsWith("@ntin.edu.tw")){setStatus("請使用 NTIN 學校帳號。","danger");await signOut(auth);return}
+ try{
+  const snap=await getDoc(doc(db,"users",user.uid));
+  if(!snap.exists()||snap.data().active!==true||snap.data().role!=="advisor"){setStatus("此工具僅開放導師帳號使用。","danger");return}
+  setStatus(`已登入：${snap.data().name||user.displayName||email}（導師）。可以開始匯入。`,"ok");importBtn.disabled=false;
+ }catch(e){setStatus("無法確認導師權限："+e.message,"danger")}
+});
+importBtn.onclick=async()=>{
+ if(!auth.currentUser)return;
+ if(!confirm(`確定將 ${students.length} 位學生寫入五護101班 allowlist？`))return;
+ importBtn.disabled=true;importBtn.textContent="匯入中…";
+ try{
+  const batch=writeBatch(db);
+  students.forEach(s=>batch.set(doc(db,"allowlist",s.email),{email:s.email,name:s.name,studentId:s.studentId,active:true}));
+  await batch.commit();
+  document.querySelectorAll(".rowStatus").forEach(el=>{el.textContent="已匯入";el.classList.add("ok")});
+  setStatus(`完成：已將 ${students.length} 位學生寫入 allowlist。`,"ok");importBtn.textContent="已完成匯入";
+ }catch(e){console.error(e);setStatus("匯入失敗："+e.message,"danger");importBtn.disabled=false;importBtn.textContent="重新匯入"}
+};
+</script></body></html>
