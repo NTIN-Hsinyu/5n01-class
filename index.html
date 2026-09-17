@@ -188,10 +188,31 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
   .notice-edit-btn,.notice-delete-btn{font-size:15px}
 }
 
+
+/* v8.4：導師班級成員管理 */
+.member-admin-btn{display:none;border:1px solid #cfe0f5;background:#f7fbff;color:#356fa8;border-radius:999px;padding:8px 12px;font-weight:800;cursor:pointer;margin-right:8px}
+.member-admin-modal{width:min(760px,100%);max-height:86vh;display:flex;flex-direction:column}
+.member-admin-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.member-search{width:100%;border:1px solid var(--line);border-radius:11px;padding:11px 12px;font:inherit;margin:12px 0}
+.member-list{overflow-y:auto;border-top:1px solid var(--line)}
+.member-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;padding:13px 2px;border-bottom:1px solid var(--line)}
+.member-name{font-weight:800;font-size:15px}.member-info{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5}
+.member-actions{display:flex;align-items:center;gap:8px}.member-role{font-size:12px;font-weight:800;padding:5px 8px;border-radius:999px;background:#f3f5f7}
+.member-toggle{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 10px;font-weight:800;cursor:pointer;white-space:nowrap}
+.member-toggle.officer{background:#eef9f5;color:#287865;border-color:#cce8df}
+.member-summary{font-size:13px;color:var(--muted);margin-bottom:4px}
+@media(max-width:760px){
+  .member-admin-btn{font-size:13px;padding:7px 9px;margin-right:5px}
+  .member-admin-modal{width:100%;max-height:90vh;border-radius:22px 22px 0 0;padding:22px 18px calc(22px + env(safe-area-inset-bottom))}
+  #memberAdminBackdrop{align-items:flex-end;padding:0}
+  .member-row{grid-template-columns:1fr;gap:9px}
+  .member-actions{justify-content:space-between}
+}
+
 </style>
 </head>
 <body><div class="access-gate" id="accessGate"><div class="gate-card"><div class="gate-mark">🏫</div><h2>五護101班｜班級公告欄</h2><p>請使用國立臺南護理專科學校 Google 帳號登入，以查看班級公告與行程。</p><button class="auth-btn primary" id="googleLoginBtn">使用 NTIN Google 帳號登入</button><div class="gate-loading" id="gateLoading">正在確認登入狀態…</div><div class="gate-error" id="gateError"></div></div></div>
-<header><div class="wrap top"><div class="brand">五護101班 <span>班級公告欄</span></div><div style="display:flex;align-items:center"><nav><a href="#home">首頁</a><a href="#notices">公告</a><a href="#calendar">行事曆</a><a href="#tasks">小考與作業</a><a href="#timetable">課表</a><a href="#rules">班規</a><a href="#links">常用連結</a></nav><div class="authbar"><div class="userbox" id="userBox"><img id="userPhoto" alt=""><div class="usertext"><b id="userName"></b><span id="userEmail"></span></div><button class="auth-btn" id="logoutBtn">登出</button></div></div></div></div></header>
+<header><div class="wrap top"><div class="brand">五護101班 <span>班級公告欄</span></div><div style="display:flex;align-items:center"><nav><a href="#home">首頁</a><a href="#notices">公告</a><a href="#calendar">行事曆</a><a href="#tasks">小考與作業</a><a href="#timetable">課表</a><a href="#rules">班規</a><a href="#links">常用連結</a></nav><div class="authbar"><button class="member-admin-btn" id="memberAdminBtn">👥 班級管理</button><div class="userbox" id="userBox"><img id="userPhoto" alt=""><div class="usertext"><b id="userName"></b><span id="userEmail"></span></div><button class="auth-btn" id="logoutBtn">登出</button></div></div></div></div></header>
 <main class="wrap" id="home">
 <div class="hero"><small id="today"></small><h1>五護101班｜班級公告欄</h1><p>重要通知、近期行程與班級常用資訊，都整理在這裡。</p>
 <button class="install" id="installBtn">安裝「五護101班」到手機</button>
@@ -230,6 +251,22 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 </main>
 <div class="bottom"><a href="#home"><b>⌂</b>首頁</a><a href="#notices"><b>▣</b>公告</a><a href="#tasks"><b>✓</b>提醒</a><a href="#timetable"><b>▦</b>課表</a></div>
 
+
+
+<div class="modal-backdrop" id="memberAdminBackdrop" role="dialog" aria-modal="true" aria-labelledby="memberAdminTitle">
+  <div class="modal member-admin-modal">
+    <div class="member-admin-top">
+      <div>
+        <div class="meta">僅導師可使用</div>
+        <h3 id="memberAdminTitle">班級成員管理</h3>
+      </div>
+      <button class="notice-close" id="memberAdminClose" aria-label="關閉班級管理">×</button>
+    </div>
+    <input class="member-search" id="memberSearch" type="search" placeholder="搜尋姓名、學號或 Email">
+    <div class="member-summary" id="memberSummary">正在準備成員資料…</div>
+    <div class="member-list" id="memberList"></div>
+  </div>
+</div>
 
 <div class="modal-backdrop" id="noticeDetailBackdrop" role="dialog" aria-modal="true" aria-labelledby="noticeDetailTitle">
   <div class="modal notice-detail-modal">
@@ -298,7 +335,7 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, reauthenticateWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-import { getFirestore, doc, getDoc, collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, getDocs, setDoc, collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 const firebaseConfig={apiKey:"AIzaSyDriaciyyXKRP6LE5emJDnvwPDA5QucUW0",authDomain:"ntin115-5n01.firebaseapp.com",projectId:"ntin115-5n01",storageBucket:"ntin115-5n01.firebasestorage.app",messagingSenderId:"145636669643",appId:"1:145636669643:web:827aa85da0cc7942eec34e"};
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
@@ -315,6 +352,7 @@ let currentNoticeFilter="全部";
 let unsubscribeAnnouncements=null;
 let selectedNotice=null;
 let editingNoticeId=null;
+let classMembers=[];
 
 const gate=document.querySelector("#accessGate");
 const gateLoading=document.querySelector("#gateLoading");
@@ -383,6 +421,95 @@ async function loadCalendarEvents(token){
   }
 }
 
+
+
+function memberRoleLabel(role){
+  return role==="advisor"?"導師":role==="officer"?"班級幹部":"學生";
+}
+
+function renderMembers(keyword=""){
+  const box=document.querySelector("#memberList");
+  const q=keyword.trim().toLowerCase();
+  const rows=classMembers.filter(m=>{
+    const hay=[m.name,m.studentId,m.email].filter(Boolean).join(" ").toLowerCase();
+    return !q || hay.includes(q);
+  });
+
+  const students=classMembers.filter(m=>m.role==="student").length;
+  const officers=classMembers.filter(m=>m.role==="officer").length;
+  document.querySelector("#memberSummary").textContent=`已登入成員 ${classMembers.length} 人｜學生 ${students} 人｜幹部 ${officers} 人`;
+
+  if(!rows.length){
+    box.innerHTML='<div class="notice-empty">找不到符合的成員。</div>';
+    return;
+  }
+
+  box.innerHTML="";
+  rows.sort((a,b)=>(a.studentId||"").localeCompare(b.studentId||"", "zh-Hant", {numeric:true})).forEach(m=>{
+    const row=document.createElement("div");
+    row.className="member-row";
+    const role=memberRoleLabel(m.role);
+    const canToggle=m.role==="student"||m.role==="officer";
+    const buttonText=m.role==="officer"?"取消幹部":"設為幹部";
+    row.innerHTML=`<div><div class="member-name">${escHtml(m.name||"未命名成員")}</div><div class="member-info">${m.studentId?`學號 ${escHtml(m.studentId)}｜`:""}${escHtml(m.email||"")}</div></div><div class="member-actions"><span class="member-role">${role}</span>${canToggle?`<button class="member-toggle ${m.role==="officer"?"officer":""}" data-uid="${escHtml(m.id)}">${buttonText}</button>`:""}</div>`;
+    box.appendChild(row);
+  });
+
+  box.querySelectorAll(".member-toggle").forEach(btn=>{
+    btn.onclick=()=>toggleOfficer(btn.dataset.uid);
+  });
+}
+
+async function loadClassMembers(){
+  if(currentMember?.role!=="advisor") return;
+  const box=document.querySelector("#memberList");
+  box.innerHTML='<div class="notice-loading">正在載入已登入的班級成員…</div>';
+  try{
+    const snap=await getDocs(collection(db,"users"));
+    classMembers=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderMembers(document.querySelector("#memberSearch").value);
+  }catch(error){
+    console.error("Member list load failed:",error);
+    box.innerHTML='<div class="notice-empty">目前無法載入班級成員。</div>';
+  }
+}
+
+async function toggleOfficer(uid){
+  if(currentMember?.role!=="advisor") return;
+  const member=classMembers.find(m=>m.id===uid);
+  if(!member || !["student","officer"].includes(member.role)) return;
+  const nextRole=member.role==="officer"?"student":"officer";
+  const action=nextRole==="officer"?"設為班級幹部":"取消班級幹部身分";
+  if(!confirm(`確定要將「${member.name||member.email}」${action}嗎？`)) return;
+
+  try{
+    await updateDoc(doc(db,"users",uid),{role:nextRole});
+    member.role=nextRole;
+    renderMembers(document.querySelector("#memberSearch").value);
+  }catch(error){
+    console.error("Role update failed:",error);
+    alert("身分修改失敗，請稍後再試。");
+  }
+}
+
+function openMemberAdmin(){
+  if(currentMember?.role!=="advisor") return;
+  document.querySelector("#memberAdminBackdrop").classList.add("show");
+  document.body.style.overflow="hidden";
+  loadClassMembers();
+}
+
+function closeMemberAdmin(){
+  document.querySelector("#memberAdminBackdrop").classList.remove("show");
+  document.body.style.overflow="";
+}
+
+document.querySelector("#memberAdminBtn").onclick=openMemberAdmin;
+document.querySelector("#memberAdminClose").onclick=closeMemberAdmin;
+document.querySelector("#memberAdminBackdrop").onclick=e=>{
+  if(e.target===document.querySelector("#memberAdminBackdrop")) closeMemberAdmin();
+};
+document.querySelector("#memberSearch").oninput=e=>renderMembers(e.target.value);
 
 function formatAnnouncementDate(timestamp){
   if(!timestamp?.toDate) return "";
@@ -627,6 +754,7 @@ async function initAuth(){
       if(!user){
         currentMember=null;
         updateAnnouncementControls(null);
+        document.querySelector("#memberAdminBtn").style.display="none";
         if(unsubscribeAnnouncements){unsubscribeAnnouncements();unsubscribeAnnouncements=null;}
         gate.style.display="flex";
         userBox.style.display="none";
@@ -647,12 +775,38 @@ async function initAuth(){
       loginBtn.style.display="none";
 
       try{
-        const memberSnap=await getDoc(doc(db,"users",user.uid));
+        let memberSnap=await getDoc(doc(db,"users",user.uid));
 
+        // 首次登入：若 users/{uid} 尚不存在，改查 allowlist/{email}
+        // 白名單存在且 active=true 時，只建立 student 身分。
         if(!memberSnap.exists()){
-          await signOut(auth);
-          showError("此帳號尚未加入五護101班名單，請洽班級導師。");
-          return;
+          gateLoading.textContent="首次登入，正在確認五護101班名單…";
+
+          const allowSnap=await getDoc(doc(db,"allowlist",email));
+
+          if(!allowSnap.exists() || allowSnap.data().active !== true){
+            await signOut(auth);
+            showError("此帳號不在五護101班名單中，請洽班級導師。");
+            return;
+          }
+
+          const allowData=allowSnap.data();
+
+          await setDoc(doc(db,"users",user.uid),{
+            email: email,
+            name: allowData.name || user.displayName || "",
+            active: true,
+            role: "student",
+            createdAt: serverTimestamp()
+          });
+
+          memberSnap=await getDoc(doc(db,"users",user.uid));
+
+          if(!memberSnap.exists()){
+            await signOut(auth);
+            showError("班級帳號建立失敗，請稍後再試。");
+            return;
+          }
         }
 
         const member=memberSnap.data();
@@ -677,6 +831,7 @@ async function initAuth(){
         gateLoading.style.display="none";
         gate.style.display="none";
         updateAnnouncementControls(member);
+        document.querySelector("#memberAdminBtn").style.display=member.role==="advisor"?"inline-block":"none";
         startAnnouncements();
 
         await loadCalendarEvents(calendarAccessToken);
