@@ -138,6 +138,26 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
   }
 }
 
+
+/* v8：Firestore 公告＋導師/幹部新增公告 */
+.notice-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.notice-head h2{margin:0}
+.add-notice-btn{display:none;border:0;border-radius:10px;padding:9px 12px;background:var(--accent);color:#fff;font-weight:800;cursor:pointer;white-space:nowrap}
+.notice-empty{padding:18px 0;color:var(--muted);font-size:14px}
+.notice-loading{padding:18px 0;color:var(--muted);font-size:14px}
+.announcement-form{display:grid;gap:12px}
+.announcement-form label{font-size:13px;font-weight:700;color:#566168}
+.announcement-form input,.announcement-form select,.announcement-form textarea{width:100%;margin-top:5px;border:1px solid var(--line);border-radius:11px;padding:11px 12px;font:inherit;color:var(--text);background:#fff}
+.announcement-form textarea{min-height:120px;resize:vertical}
+.announcement-options{display:flex;gap:16px;flex-wrap:wrap}
+.announcement-options label{display:flex;align-items:center;gap:7px;font-weight:600}
+.announcement-options input{width:auto;margin:0}
+.form-error{display:none;padding:10px;border-radius:10px;background:#fff1ed;color:#a64d3c;font-size:13px}
+@media(max-width:760px){
+  .notice-head{align-items:center}
+  .add-notice-btn{font-size:14px;padding:9px 11px}
+}
+
 </style>
 </head>
 <body><div class="access-gate" id="accessGate"><div class="gate-card"><div class="gate-mark">🏫</div><h2>五護101班｜班級公告欄</h2><p>請使用國立臺南護理專科學校 Google 帳號登入，以查看班級公告與行程。</p><button class="auth-btn primary" id="googleLoginBtn">使用 NTIN Google 帳號登入</button><div class="gate-loading" id="gateLoading">正在確認登入狀態…</div><div class="gate-error" id="gateError"></div></div></div>
@@ -149,7 +169,7 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 <div class="reminder-banner" id="urgentReminder">
 <div><strong>⚠️ 重要待辦｜基本護理學課前作業</strong><span><b>作業</b>｜請確認已完成並送出，避免只上傳但未按「繳交」。</span></div>
 <div class="reminder-actions"><div class="deadline">截止：9/18 23:59</div><button class="quick-done" id="quickDoneBtn">已完成</button></div></div>
-<div class="grid"><div><section id="notices"><h2>📌 最新公告</h2><div class="filters">
+<div class="grid"><div><section id="notices"><div class="notice-head"><h2>📌 最新公告</h2><button class="add-notice-btn" id="addNoticeBtn">＋ 新增公告</button></div><div class="filters">
 <button class="filter active" data-filter="全部">全部</button><button class="filter" data-filter="重要">重要</button><button class="filter" data-filter="課務">課務</button><button class="filter" data-filter="班務">班務</button><button class="filter" data-filter="活動">活動</button><button class="filter" data-filter="獎助學金">獎助學金</button><button class="filter" data-filter="其他">其他</button></div><div id="noticeList"></div></section>
 <section id="tasks" style="margin-top:22px"><h2>📝 小考、作業與待辦</h2>
 <div class="task-list">
@@ -179,6 +199,35 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 <section id="links" style="margin-top:22px"><h2>🔗 常用連結</h2><div class="links"><a class="link" href="#">Google Classroom</a><a class="link" href="#">Google Calendar</a><a class="link" href="#">Moodle</a><a class="link" href="#">學校首頁</a><a class="link" href="#">請假系統</a><a class="link" href="#">常用表單</a></div></section></div></div>
 </main>
 <div class="bottom"><a href="#home"><b>⌂</b>首頁</a><a href="#notices"><b>▣</b>公告</a><a href="#tasks"><b>✓</b>提醒</a><a href="#timetable"><b>▦</b>課表</a></div>
+
+<div class="modal-backdrop" id="announcementModal" role="dialog" aria-modal="true" aria-labelledby="announcementModalTitle">
+  <div class="modal">
+    <div class="modal-icon">📌</div>
+    <h3 id="announcementModalTitle">新增班級公告</h3>
+    <div class="announcement-form">
+      <label>分類
+        <select id="announcementCategory">
+          <option>重要</option><option>課務</option><option selected>班務</option><option>活動</option><option>獎助學金</option><option>其他</option>
+        </select>
+      </label>
+      <label>標題
+        <input id="announcementTitle" type="text" maxlength="80" placeholder="輸入公告標題">
+      </label>
+      <label>內容
+        <textarea id="announcementContent" maxlength="2000" placeholder="輸入公告內容"></textarea>
+      </label>
+      <div class="announcement-options">
+        <label><input id="announcementPinned" type="checkbox"> 置頂</label>
+      </div>
+      <div class="form-error" id="announcementError"></div>
+      <div class="modal-actions">
+        <button class="done" id="publishAnnouncementBtn">發布公告</button>
+        <button class="later" id="cancelAnnouncementBtn">取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="submitModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
 <div class="modal"><div class="modal-icon">📮</div><div class="meta"><span class="badge">作業</span>重要待辦提醒</div>
 <h3 id="modalTitle">基本護理學課前作業完成了嗎？</h3>
@@ -188,7 +237,7 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, reauthenticateWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 const firebaseConfig={apiKey:"AIzaSyDriaciyyXKRP6LE5emJDnvwPDA5QucUW0",authDomain:"ntin115-5n01.firebaseapp.com",projectId:"ntin115-5n01",storageBucket:"ntin115-5n01.firebasestorage.app",messagingSenderId:"145636669643",appId:"1:145636669643:web:827aa85da0cc7942eec34e"};
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
@@ -199,6 +248,10 @@ provider.addScope("https://www.googleapis.com/auth/calendar.events.readonly");
 
 const CALENDAR_ID="c_classroom8b940f16@group.calendar.google.com";
 let calendarAccessToken=null;
+let currentMember=null;
+let firestoreNotices=[];
+let currentNoticeFilter="全部";
+let unsubscribeAnnouncements=null;
 
 const gate=document.querySelector("#accessGate");
 const gateLoading=document.querySelector("#gateLoading");
@@ -267,6 +320,121 @@ async function loadCalendarEvents(token){
   }
 }
 
+
+function formatAnnouncementDate(timestamp){
+  if(!timestamp?.toDate) return "";
+  const d=timestamp.toDate();
+  return new Intl.DateTimeFormat("zh-TW",{year:"numeric",month:"2-digit",day:"2-digit",timeZone:"Asia/Taipei"}).format(d);
+}
+
+function renderFirestoreNotices(filter=currentNoticeFilter){
+  currentNoticeFilter=filter;
+  const box=document.querySelector("#noticeList");
+  const visible=firestoreNotices.filter(n=>filter==="全部"||n.category===filter);
+  if(!visible.length){
+    box.innerHTML='<div class="notice-empty">目前沒有這個分類的公告。</div>';
+    return;
+  }
+  box.innerHTML="";
+  visible.forEach(n=>{
+    const el=document.createElement("div");
+    el.className="notice";
+    const pinned=n.pinned===true ? "📌 " : "";
+    el.innerHTML=`<div class="meta"><span class="badge">${escHtml(n.category||"其他")}</span>${escHtml(formatAnnouncementDate(n.createdAt))}</div><div class="title">${pinned}${escHtml(n.title||"未命名公告")}</div><div class="body">${escHtml(n.content||"").replace(/\n/g,"<br>")}</div>`;
+    el.onclick=()=>el.classList.toggle("open");
+    box.appendChild(el);
+  });
+}
+
+function startAnnouncements(){
+  if(unsubscribeAnnouncements) unsubscribeAnnouncements();
+  const box=document.querySelector("#noticeList");
+  box.innerHTML='<div class="notice-loading">正在載入班級公告…</div>';
+
+  // 只讀 published=true；排序在前端完成，避免額外建立複合索引。
+  const q=query(collection(db,"announcements"),where("published","==",true));
+  unsubscribeAnnouncements=onSnapshot(q,snapshot=>{
+    firestoreNotices=snapshot.docs.map(d=>({id:d.id,...d.data()}));
+    firestoreNotices.sort((a,b)=>{
+      const pin=(b.pinned===true)-(a.pinned===true);
+      if(pin) return pin;
+      const at=a.createdAt?.toMillis?.()||0;
+      const bt=b.createdAt?.toMillis?.()||0;
+      return bt-at;
+    });
+    renderFirestoreNotices();
+  },error=>{
+    console.error("Announcement read failed:",error);
+    box.innerHTML='<div class="notice-empty">目前無法載入班級公告，請稍後再試。</div>';
+  });
+}
+
+function updateAnnouncementControls(member){
+  const btn=document.querySelector("#addNoticeBtn");
+  btn.style.display=(member?.role==="advisor"||member?.role==="officer")?"inline-block":"none";
+}
+
+function openAnnouncementModal(){
+  if(!(currentMember?.role==="advisor"||currentMember?.role==="officer")) return;
+  document.querySelector("#announcementError").style.display="none";
+  document.querySelector("#announcementModal").classList.add("show");
+}
+
+async function publishAnnouncement(){
+  const errorBox=document.querySelector("#announcementError");
+  const publishBtn=document.querySelector("#publishAnnouncementBtn");
+  const title=document.querySelector("#announcementTitle").value.trim();
+  const content=document.querySelector("#announcementContent").value.trim();
+  const category=document.querySelector("#announcementCategory").value;
+  const pinned=document.querySelector("#announcementPinned").checked;
+
+  if(!title||!content){
+    errorBox.textContent="請填寫公告標題與內容。";
+    errorBox.style.display="block";
+    return;
+  }
+  if(!(currentMember?.role==="advisor"||currentMember?.role==="officer")||!auth.currentUser){
+    errorBox.textContent="目前帳號沒有發布公告的權限。";
+    errorBox.style.display="block";
+    return;
+  }
+
+  publishBtn.disabled=true;
+  publishBtn.textContent="發布中…";
+  errorBox.style.display="none";
+  try{
+    await addDoc(collection(db,"announcements"),{
+      title,
+      content,
+      category,
+      pinned,
+      published:true,
+      authorUid:auth.currentUser.uid,
+      authorName:currentMember.name||auth.currentUser.displayName||"",
+      createdAt:serverTimestamp()
+    });
+    document.querySelector("#announcementTitle").value="";
+    document.querySelector("#announcementContent").value="";
+    document.querySelector("#announcementCategory").value="班務";
+    document.querySelector("#announcementPinned").checked=false;
+    document.querySelector("#announcementModal").classList.remove("show");
+  }catch(error){
+    console.error("Announcement publish failed:",error);
+    errorBox.textContent="公告發布失敗，請確認 Firestore 規則與帳號權限。";
+    errorBox.style.display="block";
+  }finally{
+    publishBtn.disabled=false;
+    publishBtn.textContent="發布公告";
+  }
+}
+
+document.querySelector("#addNoticeBtn").onclick=openAnnouncementModal;
+document.querySelector("#cancelAnnouncementBtn").onclick=()=>document.querySelector("#announcementModal").classList.remove("show");
+document.querySelector("#publishAnnouncementBtn").onclick=publishAnnouncement;
+document.querySelector("#announcementModal").onclick=e=>{
+  if(e.target===document.querySelector("#announcementModal")) document.querySelector("#announcementModal").classList.remove("show");
+};
+
 async function initAuth(){
   try{
     await setPersistence(auth,browserLocalPersistence);
@@ -299,6 +467,9 @@ async function initAuth(){
     onAuthStateChanged(auth,async user=>{
       gateError.style.display="none";
       if(!user){
+        currentMember=null;
+        updateAnnouncementControls(null);
+        if(unsubscribeAnnouncements){unsubscribeAnnouncements();unsubscribeAnnouncements=null;}
         gate.style.display="flex";
         userBox.style.display="none";
         gateLoading.style.display="none";
@@ -327,6 +498,7 @@ async function initAuth(){
         }
 
         const member=memberSnap.data();
+        currentMember=member;
         if(member.active !== true){
           await signOut(auth);
           showError("此帳號目前未啟用班級存取權限，請洽班級導師。");
@@ -346,6 +518,8 @@ async function initAuth(){
         userBox.style.display="flex";
         gateLoading.style.display="none";
         gate.style.display="none";
+        updateAnnouncementControls(member);
+        startAnnouncements();
 
         await loadCalendarEvents(calendarAccessToken);
       }catch(error){
@@ -360,15 +534,13 @@ async function initAuth(){
 }
 initAuth();
 
-const notices=[
-{date:"2026/09/16",cat:"重要",title:"11/27 新生急救教育訓練",body:"請同學留意活動時間與後續班級通知。本公告可設定為置頂的重要事項。"},
-{date:"2026/09/15",cat:"課務",title:"本週基本護理學上課提醒",body:"請依課程通知準備上課用品，並留意 Classroom 上的最新訊息。"},
-{date:"2026/09/14",cat:"班務",title:"本週班會事項",body:"班會相關事項與需要討論的班務將統一公告於此。"},
-{date:"2026/09/13",cat:"活動",title:"新生活動通知",body:"活動詳細時間、集合地點及注意事項可放在公告完整內容中。"},
-{date:"2026/09/10",cat:"獎助學金",title:"獎助學金申請資訊",body:"符合資格的同學請留意申請期限及應備文件。"}];
-function render(filter="全部"){const box=document.querySelector("#noticeList");box.innerHTML="";notices.filter(n=>filter==="全部"||n.cat===filter).forEach(n=>{const el=document.createElement("div");el.className="notice";el.innerHTML=`<div class="meta"><span class="badge">${n.cat}</span>${n.date}</div><div class="title">${n.title}</div><div class="body">${n.body}</div>`;el.onclick=()=>el.classList.toggle("open");box.appendChild(el)})}
-document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-filter]").forEach(x=>x.classList.remove("active"));b.classList.add("active");render(b.dataset.filter)});
-const d=new Date();document.querySelector("#today").textContent=`今天是 ${d.getFullYear()} 年 ${d.getMonth()+1} 月 ${d.getDate()} 日`;render();
+document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("[data-filter]").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active");
+  renderFirestoreNotices(b.dataset.filter);
+});
+const d=new Date();
+document.querySelector("#today").textContent=`今天是 ${d.getFullYear()} 年 ${d.getMonth()+1} 月 ${d.getDate()} 日`;
 if("serviceWorker" in navigator) window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js"));
 let deferredPrompt;const ib=document.querySelector("#installBtn");
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt=e;ib.style.display="inline-block"});
