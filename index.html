@@ -23,6 +23,7 @@ nav a{color:var(--text);text-decoration:none;margin-left:22px;font-size:14px}mai
 h2{font-size:18px;margin:0 0 18px}.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 12px;cursor:pointer}.filter.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 .notice{padding:16px 0;border-top:1px solid var(--line);cursor:pointer}.notice:first-of-type{border-top:0}.meta{font-size:12px;color:var(--muted);margin-bottom:5px}.title{font-weight:700}.body{display:none;color:#555;font-size:14px;line-height:1.7;margin-top:9px}.notice.open .body{display:block}.badge{display:inline-block;padding:3px 8px;border-radius:7px;background:var(--soft);margin-right:7px}.notice:nth-child(2n) .badge{background:#fff0ec}.notice:nth-child(3n) .badge{background:#eaf8f4}.notice:nth-child(4n) .badge{background:#fff6dc}
+.calendar-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.calendar-head h2{margin:0}.calendar-full-link{display:inline-flex;align-items:center;gap:6px;border:1px solid #cfe0f5;background:#f7fbff;color:#356fa8;text-decoration:none;border-radius:10px;padding:8px 11px;font-size:13px;font-weight:800;white-space:nowrap}.calendar-full-link:hover{background:#eef6ff}
 .event{display:flex;gap:14px;padding:12px 0;border-top:1px solid var(--line)}.event:first-of-type{border-top:0}.date{width:46px;text-align:center;font-weight:800;color:var(--accent);background:#f0f6ff;border-radius:10px;padding:6px 2px}.date small{display:block;font-weight:500;color:var(--muted)}
 .links{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}.link{background:linear-gradient(135deg,#f4f8ff,#fff);border:1px solid #e7edf6;padding:12px;border-radius:10px;text-decoration:none;color:var(--text);font-size:14px}
 .note{margin-top:18px;padding:14px;background:#fafbfc;border-radius:12px;color:var(--muted);font-size:13px;line-height:1.6}.bottom{display:none}
@@ -83,6 +84,9 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
   .task-time{font-size:14px;line-height:1.4;white-space:nowrap}
   .note{font-size:14px;line-height:1.65;padding:14px}
 
+  .calendar-head{align-items:center;margin-bottom:18px}
+  .calendar-head h2{margin:0}
+  .calendar-full-link{font-size:14px;padding:9px 10px}
   .event{padding:14px 0;gap:13px}
   .event b{font-size:17px;line-height:1.45}
   .date{width:52px;font-size:17px;padding:7px 3px}
@@ -155,7 +159,7 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 <div class="task assignment"><span class="dot"></span><div class="task-info"><div class="task-title">班級餐費</div><div class="task-sub">費用｜請依班級公告方式繳交</div></div><div class="task-time">9/26 截止</div></div>
 </div><div class="note">正式版可依截止日期自動排序，已完成的項目可隱藏或標示完成。</div>
 </section></div>
-<div><section id="calendar"><h2>📅 近期行程</h2>
+<div><section id="calendar"><div class="calendar-head"><h2>📅 近期行程</h2><a class="calendar-full-link" id="fullCalendarLink" href="https://calendar.google.com/calendar/u/1?cid=Y19jbGFzc3Jvb204Yjk0MGYxNkBncm91cC5jYWxlbmRhci5nb29nbGUuY29t" target="_blank" rel="noopener noreferrer" aria-label="查看完整班級行事曆">🗓 查看完整行事曆 ↗</a></div>
 <div id="calendarEvents"><div class="note">正在準備班級行事曆…</div></div></section>
 <section id="timetable" style="margin-top:22px"><h2>📚 本週課表</h2>
 <div class="timetable-wrap"><table class="timetable">
