@@ -347,6 +347,27 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
  .seat-tool-modal{width:100%;height:96vh;max-height:96vh;border-radius:22px 22px 0 0;padding:12px}
  #seatToolBackdrop{align-items:flex-end;padding:0}
 }
+
+/* v8.9.4 導師信箱新郵件紅點 */
+#mailboxBottomBtn{position:relative}
+#mailboxBottomBtn .mail-unread-dot{
+  position:absolute;
+  top:8px;
+  left:calc(50% + 7px);
+  width:9px;
+  height:9px;
+  border-radius:50%;
+  background:#e53935;
+  border:2px solid #fff;
+  box-sizing:content-box;
+  display:none;
+  pointer-events:none;
+}
+#mailboxBottomBtn.has-unread .mail-unread-dot{display:block}
+
+/* v8.9.5 小老師權限 */
+.member-little-teacher{border:1px solid #d7dce2;background:#fff;border-radius:10px;padding:7px 10px;font-weight:700;cursor:pointer}
+.member-little-teacher.active{background:#eef6ff;border-color:#8ab4e8}
 </style>
 </head>
 <body><div class="access-gate" id="accessGate"><div class="gate-card"><div class="gate-mark">🏫</div><h2>五護101班｜班級公告欄</h2><p>請使用國立臺南護理專科學校 Google 帳號登入，以查看班級公告與行程。</p><button class="auth-btn primary" id="googleLoginBtn">使用 NTIN Google 帳號登入</button><div class="gate-loading" id="gateLoading">正在確認登入狀態…</div><div class="gate-error" id="gateError"></div></div></div>
@@ -387,7 +408,7 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 </div></section></div></div>
 </main>
 
-<div class="bottom"><a href="#home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.8 12 3l9 7.8"/><path d="M5.5 9.5V21h13V9.5"/><path d="M9.5 21v-6h5v6"/></svg><span>首頁</span></a><a href="#notices"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg><span>公告</span></a><a href="#tasks"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.7 2.7L16.5 9"/></svg><span>提醒</span></a><a href="#timetable"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg><span>課表</span></a><a href="#" id="mailboxBottomBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg><span>信箱</span></a></div>
+<div class="bottom"><a href="#home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.8 12 3l9 7.8"/><path d="M5.5 9.5V21h13V9.5"/><path d="M9.5 21v-6h5v6"/></svg><span>首頁</span></a><a href="#notices"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg><span>公告</span></a><a href="#tasks"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.7 2.7L16.5 9"/></svg><span>提醒</span></a><a href="#timetable"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg><span>課表</span></a><a href="#" id="mailboxBottomBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg><i class="mail-unread-dot" aria-hidden="true"></i><span>信箱</span></a></div>
 
 
 
@@ -938,7 +959,7 @@ async function sendMailboxMessage(){
 }
 async function openMailThread(id){
  selectedMailboxId=id;const m=mailboxMessages.find(x=>x.id===id);
- if(isAdvisorMail()&&m?.status==="unread"){try{await updateDoc(doc(db,"teacherMailbox",id),{status:"read",readAt:serverTimestamp()})}catch(e){}}
+ if(isAdvisorMail()&&m?.status==="unread"){try{await updateDoc(doc(db,"teacherMailbox",id),{status:"read",readAt:serverTimestamp()});m.status="read";updateMailboxUnreadBadge()}catch(e){}}
  renderMailThread()
 }
 function renderMailThread(){
@@ -946,7 +967,7 @@ function renderMailThread(){
  if(!isAdvisorMail()&&(m.anonymous||m.senderUid!==auth.currentUser?.uid)){box.innerHTML='<div class="mail-empty">沒有權限查看這則留言。</div>';return}
  const reps=mailboxReplies.filter(r=>r.mailboxId===m.id).sort((a,b)=>(a.createdAt?.toMillis?.()||0)-(b.createdAt?.toMillis?.()||0));
  let bubbles=`<div class="bubble student"><span class="bubble-meta">${isAdvisorMail()&&!m.anonymous?escHtml(m.senderName||"具名同學"):(m.anonymous?"匿名留言":"我")}｜${mailTime(m.createdAt)}</span>${escHtml(m.message||"")}</div>`;
- reps.forEach(r=>bubbles+=`<div class="bubble ${r.authorRole==="advisor"?"advisor":"student"}"><span class="bubble-meta">${r.authorRole==="advisor"?"趙老師":"我"}｜${mailTime(r.createdAt)}</span>${escHtml(r.message||"")}</div>`);
+ reps.forEach(r=>bubbles+=`<div class="bubble ${r.authorRole==="advisor"?"advisor":"student"}"><span class="bubble-meta">${r.authorRole==="advisor"?"老師":"我"}｜${mailTime(r.createdAt)}</span>${escHtml(r.message||"")}</div>`);
  const canReply=!m.anonymous&&(isAdvisorMail()||m.senderUid===auth.currentUser?.uid);
  box.innerHTML=`<button class="mailbox-tab" id="mailBackBtn">← 返回</button><div class="thread">${bubbles}</div>${canReply?`<div class="mailbox-reply"><textarea id="mailReplyText" maxlength="1200" placeholder="${isAdvisorMail()?"回覆這位同學…":"回覆老師…"}"></textarea><div class="mail-actions"><button class="mail-primary" id="sendReplyBtn">送出回覆</button>${isAdvisorMail()?'<button class="mail-danger" id="deleteMailBtn">刪除整個對話</button>':""}</div></div>`:(isAdvisorMail()?'<div class="mailbox-note">這是匿名留言。為維持真正匿名，系統不提供回覆功能。</div><div class="mail-actions"><button class="mail-danger" id="deleteMailBtn">刪除留言</button></div>':'')}`;
  document.querySelector("#mailBackBtn").onclick=()=>{selectedMailboxId=null;renderMailbox()};
@@ -961,21 +982,53 @@ async function deleteMailboxThread(){
  if(!isAdvisorMail()||!selectedMailboxId||!confirm("確定刪除這則留言及其所有回覆嗎？"))return;
  try{const batch=writeBatch(db);mailboxReplies.filter(r=>r.mailboxId===selectedMailboxId).forEach(r=>batch.delete(doc(db,"teacherMailboxReplies",r.id)));batch.delete(doc(db,"teacherMailbox",selectedMailboxId));await batch.commit();selectedMailboxId=null;renderMailbox()}catch(e){alert("刪除失敗，請稍後再試。")}
 }
+
+function mailboxSeenKey(){
+  return `class101_mail_seen_${auth.currentUser?.uid||"guest"}`;
+}
+function latestAdvisorReplyMillis(){
+  return mailboxReplies
+    .filter(r=>r.authorRole==="advisor")
+    .reduce((max,r)=>Math.max(max,r.createdAt?.toMillis?.()||0),0);
+}
+function updateMailboxUnreadBadge(){
+  const btn=document.querySelector("#mailboxBottomBtn");
+  if(!btn||!currentMember)return;
+  let unread=false;
+  if(isAdvisorMail()){
+    unread=mailboxMessages.some(m=>m.status==="unread");
+  }else{
+    const seen=Number(localStorage.getItem(mailboxSeenKey())||0);
+    unread=latestAdvisorReplyMillis()>seen;
+  }
+  btn.classList.toggle("has-unread",unread);
+}
+function markStudentMailboxSeen(){
+  if(isAdvisorMail())return;
+  const latest=latestAdvisorReplyMillis();
+  if(latest)localStorage.setItem(mailboxSeenKey(),String(latest));
+  updateMailboxUnreadBadge();
+}
 function startMailbox(){
  if(unsubscribeMailbox)unsubscribeMailbox();if(unsubscribeMailboxReplies)unsubscribeMailboxReplies();
  const mq=isAdvisorMail()?query(collection(db,"teacherMailbox")):query(collection(db,"teacherMailbox"),where("anonymous","==",false),where("senderUid","==",auth.currentUser.uid));
- unsubscribeMailbox=onSnapshot(mq,s=>{mailboxMessages=s.docs.map(d=>({id:d.id,...d.data()}));renderMailbox()},e=>console.error(e));
+ unsubscribeMailbox=onSnapshot(mq,s=>{mailboxMessages=s.docs.map(d=>({id:d.id,...d.data()}));renderMailbox();updateMailboxUnreadBadge()},e=>console.error(e));
  // Replies are filtered and secured by Firestore rules; UI filters to selected conversation.
  const rq=isAdvisorMail()?query(collection(db,"teacherMailboxReplies")):query(collection(db,"teacherMailboxReplies"),where("studentUid","==",auth.currentUser.uid));
- unsubscribeMailboxReplies=onSnapshot(rq,s=>{mailboxReplies=s.docs.map(d=>({id:d.id,...d.data()}));if(selectedMailboxId)renderMailThread()},e=>console.error(e))
+ unsubscribeMailboxReplies=onSnapshot(rq,s=>{mailboxReplies=s.docs.map(d=>({id:d.id,...d.data()}));if(selectedMailboxId)renderMailThread();updateMailboxUnreadBadge()},e=>console.error(e))
 }
-function openMailbox(){mailboxView=isAdvisorMail()?"inbox":"compose";selectedMailboxId=null;document.querySelector("#mailboxBackdrop").classList.add("show");document.body.style.overflow="hidden";renderMailboxTabs();renderMailbox()}
+function openMailbox(){mailboxView=isAdvisorMail()?"inbox":"compose";selectedMailboxId=null;document.querySelector("#mailboxBackdrop").classList.add("show");document.body.style.overflow="hidden";renderMailboxTabs();renderMailbox();if(!isAdvisorMail())markStudentMailboxSeen()}
 function closeMailbox(){document.querySelector("#mailboxBackdrop").classList.remove("show");document.body.style.overflow="";selectedMailboxId=null}
 document.querySelector("#mailboxBottomBtn").onclick=e=>{e.preventDefault();openMailbox()};document.querySelector("#mailboxClose").onclick=closeMailbox;document.querySelector("#mailboxBackdrop").onclick=e=>{if(e.target===document.querySelector("#mailboxBackdrop"))closeMailbox()};
 
+function canEditTasks(){
+  return currentMember?.role==="advisor"
+    || currentMember?.role==="officer"
+    || currentMember?.taskEditor===true;
+}
 function canManageTask(task){
   if(currentMember?.role==="advisor") return true;
-  return currentMember?.role==="officer" && task?.authorUid===auth.currentUser?.uid;
+  return canEditTasks() && task?.authorUid===auth.currentUser?.uid;
 }
 function timestampToLocalInput(ts){
   if(!ts) return "";
@@ -1085,7 +1138,7 @@ function startTasks(){
 }
 
 function openTaskModal(task=null){
-  if(!(currentMember?.role==="advisor"||currentMember?.role==="officer")) return;
+  if(!canEditTasks()) return;
   if(task && !canManageTask(task)) return;
   editingTaskId=task?.id||null;
   document.querySelector("#taskModalTitle").textContent=editingTaskId?"編輯待辦事項":"新增待辦事項";
@@ -1108,7 +1161,7 @@ async function saveTask(){
   const due=document.querySelector("#taskDue").value;
   const repeat=document.querySelector("#taskRepeat").value;
   if(!title||!due){err.textContent="請填寫標題與日期／截止時間。";err.style.display="block";return;}
-  if(!(currentMember?.role==="advisor"||currentMember?.role==="officer")||!auth.currentUser)return;
+  if(!canEditTasks()||!auth.currentUser)return;
   btn.disabled=true;
   try{
     if(editingTaskId){
@@ -1146,8 +1199,10 @@ document.querySelector("#announcementAddTask").onchange=e=>{
   document.querySelector("#announcementTaskFields").classList.toggle("show",e.target.checked);
 };
 
-function memberRoleLabel(role){
-  return role==="advisor"?"導師":role==="officer"?"班級幹部":"學生";
+function memberRoleLabel(member){
+  if(member?.role==="advisor") return "導師";
+  if(member?.role==="officer") return member?.taskEditor===true ? "班級幹部・小老師" : "班級幹部";
+  return member?.taskEditor===true ? "學生・小老師" : "學生";
 }
 
 function renderMembers(keyword=""){
@@ -1160,7 +1215,7 @@ function renderMembers(keyword=""){
 
   const students=classMembers.filter(m=>m.role==="student").length;
   const officers=classMembers.filter(m=>m.role==="officer").length;
-  document.querySelector("#memberSummary").textContent=`已登入成員 ${classMembers.length} 人｜學生 ${students} 人｜幹部 ${officers} 人`;
+  const littleTeachers=classMembers.filter(m=>m.taskEditor===true).length; document.querySelector("#memberSummary").textContent=`已登入成員 ${classMembers.length} 人｜學生 ${students} 人｜幹部 ${officers} 人｜小老師 ${littleTeachers} 人`;
 
   if(!rows.length){
     box.innerHTML='<div class="notice-empty">找不到符合的成員。</div>';
@@ -1171,16 +1226,36 @@ function renderMembers(keyword=""){
   rows.sort((a,b)=>(a.studentId||"").localeCompare(b.studentId||"", "zh-Hant", {numeric:true})).forEach(m=>{
     const row=document.createElement("div");
     row.className="member-row";
-    const role=memberRoleLabel(m.role);
+    const role=memberRoleLabel(m);
     const canToggle=m.role==="student"||m.role==="officer";
     const buttonText=m.role==="officer"?"取消幹部":"設為幹部";
-    row.innerHTML=`<div><div class="member-name">${escHtml(m.name||"未命名成員")}</div><div class="member-info">${m.studentId?`學號 ${escHtml(m.studentId)}｜`:""}${escHtml(m.email||"")}</div></div><div class="member-actions"><span class="member-role">${role}</span>${canToggle?`<button class="member-toggle ${m.role==="officer"?"officer":""}" data-uid="${escHtml(m.id)}">${buttonText}</button>`:""}</div>`;
+    row.innerHTML=`<div><div class="member-name">${escHtml(m.name||"未命名成員")}</div><div class="member-info">${m.studentId?`學號 ${escHtml(m.studentId)}｜`:""}${escHtml(m.email||"")}</div></div><div class="member-actions"><span class="member-role">${role}</span>${canToggle?`<button class="member-toggle ${m.role==="officer"?"officer":""}" data-uid="${escHtml(m.id)}">${buttonText}</button><button class="member-little-teacher ${m.taskEditor===true?"active":""}" data-task-uid="${escHtml(m.id)}">${m.taskEditor===true?"取消小老師":"設為小老師"}</button>`:""}</div>`;
     box.appendChild(row);
   });
 
   box.querySelectorAll(".member-toggle").forEach(btn=>{
     btn.onclick=()=>toggleOfficer(btn.dataset.uid);
   });
+  box.querySelectorAll(".member-little-teacher").forEach(btn=>{
+    btn.onclick=()=>toggleLittleTeacher(btn.dataset.taskUid);
+  });
+}
+
+async function toggleLittleTeacher(uid){
+  if(currentMember?.role!=="advisor") return;
+  const member=classMembers.find(m=>m.id===uid);
+  if(!member || !["student","officer"].includes(member.role)) return;
+  const next=member.taskEditor!==true;
+  const action=next?"設為小老師":"取消小老師身分";
+  if(!confirm(`確定要將「${member.name||member.email}」${action}嗎？`)) return;
+  try{
+    await updateDoc(doc(db,"users",uid),{taskEditor:next});
+    member.taskEditor=next;
+    renderMembers(document.querySelector("#memberSearch").value);
+  }catch(error){
+    console.error("Little teacher update failed:",error);
+    alert("小老師權限更新失敗，請確認 Firestore Rules 已更新。");
+  }
 }
 
 async function loadClassMembers(){
@@ -1322,7 +1397,7 @@ function updateAnnouncementControls(member){
 }
 
 function openAnnouncementModal(notice=null){
-  if(!(currentMember?.role==="advisor"||currentMember?.role==="officer")) return;
+  if(!canEditTasks()) return;
   if(notice && !canManageNotice(notice)) return;
 
   editingNoticeId=notice?.id||null;
