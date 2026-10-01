@@ -242,6 +242,27 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
   .link-task-fields label:last-child{grid-column:auto}
 }
 
+
+/* v8.6 導師信箱 */
+.mailbox-fab{display:none;position:fixed;right:18px;bottom:calc(88px + env(safe-area-inset-bottom));z-index:30;border:0;border-radius:999px;padding:12px 16px;background:#fff0f4;color:#9d4763;box-shadow:0 8px 24px rgba(70,45,55,.14);font-weight:900;cursor:pointer}
+.mailbox-modal{width:min(720px,100%);max-height:88vh;display:flex;flex-direction:column}.mailbox-tabs{display:flex;gap:8px;margin:10px 0 14px}.mailbox-tab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 12px;font-weight:800;cursor:pointer}.mailbox-tab.active{background:#fff0f4;color:#9d4763;border-color:#f1cad6}.mailbox-scroll{overflow:auto;min-height:0}.mailbox-compose{display:grid;gap:13px}.identity-choice{display:grid;grid-template-columns:1fr 1fr;gap:10px}.identity-card{border:1px solid var(--line);border-radius:13px;padding:12px;cursor:pointer;background:#fff}.identity-card:has(input:checked){border-color:#e8afc1;background:#fff7fa}.identity-card input{margin-right:7px}.identity-card small{display:block;color:var(--muted);line-height:1.5;margin:6px 0 0 22px}.mailbox-compose textarea,.mailbox-reply textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px;font:inherit;min-height:130px;resize:vertical}.mailbox-note{font-size:12px;color:var(--muted);line-height:1.65;background:#fafafa;border-radius:11px;padding:10px 12px}.mailbox-list{display:grid;gap:11px}.mail-card{border:1px solid var(--line);border-radius:14px;padding:14px;background:#fff;cursor:pointer}.mail-card.unread{border-left:4px solid #d989a3;background:#fffafd}.mail-card-head{display:flex;justify-content:space-between;gap:10px}.mail-card-title{font-weight:900}.mail-card-time{font-size:12px;color:var(--muted);white-space:nowrap}.mail-preview{font-size:14px;color:#566168;line-height:1.6;margin-top:7px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.mail-badge{display:inline-block;font-size:11px;padding:3px 7px;border-radius:999px;background:#f4f5f6;color:#59636a;margin-left:6px}.thread{display:grid;gap:10px;margin:12px 0}.bubble{max-width:88%;border-radius:14px;padding:11px 12px;line-height:1.65;font-size:14px;white-space:pre-wrap}.bubble.student{background:#f5f6f7;justify-self:start}.bubble.advisor{background:#eef5ff;justify-self:end}.bubble-meta{display:block;font-size:11px;color:var(--muted);margin-bottom:4px}.mailbox-reply{display:grid;gap:8px;border-top:1px solid var(--line);padding-top:12px}.mailbox-reply textarea{min-height:86px}.mail-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}.mail-danger{border:1px solid #f2c5bc;background:#fff4f1;color:#b64d3a;border-radius:9px;padding:8px 10px;font-weight:800;cursor:pointer}.mail-primary{border:0;background:var(--accent);color:#fff;border-radius:10px;padding:10px 13px;font-weight:900;cursor:pointer}.mail-empty{padding:22px 8px;text-align:center;color:var(--muted);line-height:1.7}
+@media(max-width:760px){.mailbox-fab{right:12px;bottom:calc(82px + env(safe-area-inset-bottom));padding:11px 14px}.mailbox-modal{width:100%;max-height:92vh;border-radius:22px 22px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom))}#mailboxBackdrop{align-items:flex-end;padding:0}.identity-choice{grid-template-columns:1fr}.bubble{max-width:94%}}
+
+
+/* v8.7 待辦排版：避免標題、截止時間與按鈕互相擠壓 */
+.task{min-width:0}
+.task-main{display:grid!important;grid-template-columns:10px minmax(0,1fr)!important;column-gap:12px;row-gap:5px;align-items:start;min-width:0}
+.task-main>.dot{grid-column:1;grid-row:1;margin-top:6px}
+.task-info{grid-column:2;grid-row:1;min-width:0}
+.task-title,.task-sub,.task-linked{overflow-wrap:anywhere;word-break:break-word}
+.task-time{grid-column:2;grid-row:2;font-size:13px;white-space:normal}
+.task-actions{flex:0 0 auto;align-self:center}
+@media(max-width:760px){
+ .task{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:12px}
+ .task-main{width:100%}
+ .task-actions{width:100%;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+ .task-done-btn,.task-manage-btn{font-size:14px;padding:9px 11px}
+}
 </style>
 </head>
 <body><div class="access-gate" id="accessGate"><div class="gate-card"><div class="gate-mark">🏫</div><h2>五護101班｜班級公告欄</h2><p>請使用國立臺南護理專科學校 Google 帳號登入，以查看班級公告與行程。</p><button class="auth-btn primary" id="googleLoginBtn">使用 NTIN Google 帳號登入</button><div class="gate-loading" id="gateLoading">正在確認登入狀態…</div><div class="gate-error" id="gateError"></div></div></div>
@@ -278,9 +299,18 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 </section>
 <section id="links" style="margin-top:22px"><h2>🔗 常用連結</h2><div class="links"><a class="link" href="#">Google Classroom</a><a class="link" href="#">Google Calendar</a><a class="link" href="#">Moodle</a><a class="link" href="#">學校首頁</a><a class="link" href="#">請假系統</a><a class="link" href="#">常用表單</a></div></section></div></div>
 </main>
+<button class="mailbox-fab" id="mailboxBtn">💌 導師信箱</button>
 <div class="bottom"><a href="#home"><b>⌂</b>首頁</a><a href="#notices"><b>▣</b>公告</a><a href="#tasks"><b>✓</b>提醒</a><a href="#timetable"><b>▦</b>課表</a></div>
 
 
+
+
+<div class="modal-backdrop" id="mailboxBackdrop" role="dialog" aria-modal="true">
+ <div class="modal mailbox-modal">
+  <div class="member-admin-top"><div><div class="meta">五護101班</div><h3>💌 導師信箱</h3></div><button class="notice-close" id="mailboxClose">×</button></div>
+  <div class="mailbox-tabs" id="mailboxTabs"></div><div class="mailbox-scroll" id="mailboxContent"></div>
+ </div>
+</div>
 
 <div class="modal-backdrop" id="memberAdminBackdrop" role="dialog" aria-modal="true" aria-labelledby="memberAdminTitle">
   <div class="modal member-admin-modal">
@@ -432,6 +462,7 @@ let classMembers=[];
 let classTasks=[];
 let unsubscribeTasks=null;
 let editingTaskId=null;
+let mailboxMessages=[]; let mailboxReplies=[]; let mailboxView="compose"; let selectedMailboxId=null; let unsubscribeMailbox=null; let unsubscribeMailboxReplies=null;
 
 const gate=document.querySelector("#accessGate");
 const gateLoading=document.querySelector("#gateLoading");
@@ -503,6 +534,87 @@ async function loadCalendarEvents(token){
 
 
 
+
+function mailTime(ts){if(!ts)return "";const d=ts?.toDate?ts.toDate():new Date(ts);return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`}
+function isAdvisorMail(){return currentMember?.role==="advisor"}
+function renderMailboxTabs(){
+ const tabs=document.querySelector("#mailboxTabs");
+ if(isAdvisorMail()){mailboxView="inbox";tabs.innerHTML='<button class="mailbox-tab active">收件匣</button>'}
+ else tabs.innerHTML=`<button class="mailbox-tab ${mailboxView==="compose"?"active":""}" data-tab="compose">寫給老師</button><button class="mailbox-tab ${mailboxView==="mine"?"active":""}" data-tab="mine">我的具名留言</button>`;
+ tabs.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{mailboxView=b.dataset.tab;selectedMailboxId=null;renderMailboxTabs();renderMailbox()})
+}
+function renderMailbox(){
+ const box=document.querySelector("#mailboxContent");
+ if(mailboxView==="compose"){
+  box.innerHTML=`<div class="mailbox-compose"><div class="identity-choice">
+   <label class="identity-card"><div><input type="radio" name="mailIdentity" value="anonymous" checked><b>匿名告訴老師</b></div><small>不會附上姓名、學號或帳號資訊；送出後無法查看回覆。</small></label>
+   <label class="identity-card"><div><input type="radio" name="mailIdentity" value="named"><b>具名告訴老師</b></div><small>老師會知道是你；之後可以查看老師回覆並繼續對話。</small></label></div>
+   <textarea id="mailMessage" maxlength="1500" placeholder="想告訴老師什麼呢？"></textarea>
+   <div class="mailbox-note">導師信箱不是即時通訊。若需要立即協助，請直接聯繫導師或學校相關單位。</div>
+   <button class="mail-primary" id="sendMailBtn">送出留言</button><div class="form-error" id="mailError"></div></div>`;
+  document.querySelector("#sendMailBtn").onclick=sendMailboxMessage;return;
+ }
+ if(selectedMailboxId){renderMailThread();return}
+ let rows=isAdvisorMail()?mailboxMessages:mailboxMessages.filter(m=>!m.anonymous&&m.senderUid===auth.currentUser?.uid);
+ if(!rows.length){box.innerHTML=`<div class="mail-empty">${isAdvisorMail()?"目前沒有收到留言。":"目前沒有具名留言。<br>匿名留言送出後不會顯示在這裡。"}</div>`;return}
+ box.innerHTML='<div class="mailbox-list"></div>';const list=box.querySelector(".mailbox-list");
+ [...rows].sort((a,b)=>(b.updatedAt?.toMillis?.()||b.createdAt?.toMillis?.()||0)-(a.updatedAt?.toMillis?.()||a.createdAt?.toMillis?.()||0)).forEach(m=>{
+  const c=document.createElement("div");c.className=`mail-card ${isAdvisorMail()&&m.status==="unread"?"unread":""}`;
+  const who=isAdvisorMail()?(m.anonymous?"匿名同學":(m.senderName||"具名同學")):"給老師的留言";
+  c.innerHTML=`<div class="mail-card-head"><div class="mail-card-title">${escHtml(who)} <span class="mail-badge">${m.anonymous?"匿名":"具名"}</span>${isAdvisorMail()&&m.status==="unread"?'<span class="mail-badge">未讀</span>':""}</div><div class="mail-card-time">${mailTime(m.createdAt)}</div></div><div class="mail-preview">${escHtml(m.message||"")}</div>`;
+  c.onclick=()=>openMailThread(m.id);list.appendChild(c)
+ })
+}
+async function sendMailboxMessage(){
+ const msg=document.querySelector("#mailMessage").value.trim(),err=document.querySelector("#mailError"),btn=document.querySelector("#sendMailBtn");
+ const anonymous=document.querySelector('input[name="mailIdentity"]:checked')?.value==="anonymous";
+ if(!msg){err.textContent="請先輸入留言內容。";err.style.display="block";return}
+ btn.disabled=true;
+ try{
+  const p={message:msg,anonymous,status:"unread",createdAt:serverTimestamp(),updatedAt:serverTimestamp()};
+  if(!anonymous){p.senderUid=auth.currentUser.uid;p.senderName=currentMember?.name||auth.currentUser.displayName||"";p.studentId=currentMember?.studentId||"";p.senderEmail=currentMember?.email||auth.currentUser.email||""}
+  await addDoc(collection(db,"teacherMailbox"),p);document.querySelector("#mailMessage").value="";
+  alert(anonymous?"匿名留言已送出。":"具名留言已送出，可以在「我的具名留言」查看老師回覆。");
+  if(!anonymous){mailboxView="mine";renderMailboxTabs();renderMailbox()}
+ }catch(e){console.error(e);err.textContent="留言送出失敗，請稍後再試。";err.style.display="block"}finally{btn.disabled=false}
+}
+async function openMailThread(id){
+ selectedMailboxId=id;const m=mailboxMessages.find(x=>x.id===id);
+ if(isAdvisorMail()&&m?.status==="unread"){try{await updateDoc(doc(db,"teacherMailbox",id),{status:"read",readAt:serverTimestamp()})}catch(e){}}
+ renderMailThread()
+}
+function renderMailThread(){
+ const box=document.querySelector("#mailboxContent"),m=mailboxMessages.find(x=>x.id===selectedMailboxId);if(!m)return;
+ if(!isAdvisorMail()&&(m.anonymous||m.senderUid!==auth.currentUser?.uid)){box.innerHTML='<div class="mail-empty">沒有權限查看這則留言。</div>';return}
+ const reps=mailboxReplies.filter(r=>r.mailboxId===m.id).sort((a,b)=>(a.createdAt?.toMillis?.()||0)-(b.createdAt?.toMillis?.()||0));
+ let bubbles=`<div class="bubble student"><span class="bubble-meta">${isAdvisorMail()&&!m.anonymous?escHtml(m.senderName||"具名同學"):(m.anonymous?"匿名留言":"我")}｜${mailTime(m.createdAt)}</span>${escHtml(m.message||"")}</div>`;
+ reps.forEach(r=>bubbles+=`<div class="bubble ${r.authorRole==="advisor"?"advisor":"student"}"><span class="bubble-meta">${r.authorRole==="advisor"?"趙老師":"我"}｜${mailTime(r.createdAt)}</span>${escHtml(r.message||"")}</div>`);
+ const canReply=!m.anonymous&&(isAdvisorMail()||m.senderUid===auth.currentUser?.uid);
+ box.innerHTML=`<button class="mailbox-tab" id="mailBackBtn">← 返回</button><div class="thread">${bubbles}</div>${canReply?`<div class="mailbox-reply"><textarea id="mailReplyText" maxlength="1200" placeholder="${isAdvisorMail()?"回覆這位同學…":"回覆老師…"}"></textarea><div class="mail-actions"><button class="mail-primary" id="sendReplyBtn">送出回覆</button>${isAdvisorMail()?'<button class="mail-danger" id="deleteMailBtn">刪除整個對話</button>':""}</div></div>`:(isAdvisorMail()?'<div class="mailbox-note">這是匿名留言。為維持真正匿名，系統不提供回覆功能。</div><div class="mail-actions"><button class="mail-danger" id="deleteMailBtn">刪除留言</button></div>':'')}`;
+ document.querySelector("#mailBackBtn").onclick=()=>{selectedMailboxId=null;renderMailbox()};
+ if(document.querySelector("#sendReplyBtn"))document.querySelector("#sendReplyBtn").onclick=sendMailReply;
+ if(document.querySelector("#deleteMailBtn"))document.querySelector("#deleteMailBtn").onclick=deleteMailboxThread
+}
+async function sendMailReply(){
+ const i=document.querySelector("#mailReplyText"),msg=i.value.trim(),m=mailboxMessages.find(x=>x.id===selectedMailboxId);if(!msg||!m||m.anonymous)return;
+ try{await addDoc(collection(db,"teacherMailboxReplies"),{mailboxId:m.id,studentUid:m.senderUid,message:msg,authorUid:auth.currentUser.uid,authorRole:isAdvisorMail()?"advisor":"student",createdAt:serverTimestamp()});await updateDoc(doc(db,"teacherMailbox",m.id),{updatedAt:serverTimestamp()});i.value=""}catch(e){alert("回覆失敗，請稍後再試。")}
+}
+async function deleteMailboxThread(){
+ if(!isAdvisorMail()||!selectedMailboxId||!confirm("確定刪除這則留言及其所有回覆嗎？"))return;
+ try{const batch=writeBatch(db);mailboxReplies.filter(r=>r.mailboxId===selectedMailboxId).forEach(r=>batch.delete(doc(db,"teacherMailboxReplies",r.id)));batch.delete(doc(db,"teacherMailbox",selectedMailboxId));await batch.commit();selectedMailboxId=null;renderMailbox()}catch(e){alert("刪除失敗，請稍後再試。")}
+}
+function startMailbox(){
+ if(unsubscribeMailbox)unsubscribeMailbox();if(unsubscribeMailboxReplies)unsubscribeMailboxReplies();
+ const mq=isAdvisorMail()?query(collection(db,"teacherMailbox")):query(collection(db,"teacherMailbox"),where("anonymous","==",false),where("senderUid","==",auth.currentUser.uid));
+ unsubscribeMailbox=onSnapshot(mq,s=>{mailboxMessages=s.docs.map(d=>({id:d.id,...d.data()}));renderMailbox()},e=>console.error(e));
+ // Replies are filtered and secured by Firestore rules; UI filters to selected conversation.
+ const rq=isAdvisorMail()?query(collection(db,"teacherMailboxReplies")):query(collection(db,"teacherMailboxReplies"),where("studentUid","==",auth.currentUser.uid));
+ unsubscribeMailboxReplies=onSnapshot(rq,s=>{mailboxReplies=s.docs.map(d=>({id:d.id,...d.data()}));if(selectedMailboxId)renderMailThread()},e=>console.error(e))
+}
+function openMailbox(){mailboxView=isAdvisorMail()?"inbox":"compose";selectedMailboxId=null;document.querySelector("#mailboxBackdrop").classList.add("show");document.body.style.overflow="hidden";renderMailboxTabs();renderMailbox()}
+function closeMailbox(){document.querySelector("#mailboxBackdrop").classList.remove("show");document.body.style.overflow="";selectedMailboxId=null}
+document.querySelector("#mailboxBtn").onclick=openMailbox;document.querySelector("#mailboxClose").onclick=closeMailbox;document.querySelector("#mailboxBackdrop").onclick=e=>{if(e.target===document.querySelector("#mailboxBackdrop"))closeMailbox()};
+
 function canManageTask(task){
   if(currentMember?.role==="advisor") return true;
   return currentMember?.role==="officer" && task?.authorUid===auth.currentUser?.uid;
@@ -517,18 +629,13 @@ function timestampToLocalInput(ts){
 function repeatLabel(r){return r==="weekly"?"每週":r==="biweekly"?"每兩週":r==="monthly"?"每月":"";}
 function addMonthsClamped(base,n){const d=new Date(base),day=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+n);const last=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();d.setDate(Math.min(day,last));return d;}
 function occurrenceDue(task,now=new Date()){
-  const base=task.dueAt?.toDate?task.dueAt.toDate():new Date(task.dueAt);
-  if(Number.isNaN(base.getTime())||!task.repeat||task.repeat==="none"||base>now)return base;
-  if(task.repeat==="weekly"||task.repeat==="biweekly"){const step=(task.repeat==="weekly"?7:14)*86400000;return new Date(base.getTime()+Math.max(0,Math.floor((now-base)/step))*step);}
-  if(task.repeat==="monthly"){let n=(now.getFullYear()-base.getFullYear())*12+now.getMonth()-base.getMonth();let d=addMonthsClamped(base,Math.max(0,n));if(d>now&&n>0)d=addMonthsClamped(base,n-1);return d;}
-  return base;
+ const base=task.dueAt?.toDate?task.dueAt.toDate():new Date(task.dueAt);
+ if(Number.isNaN(base.getTime())||!task.repeat||task.repeat==="none"||base>now)return base;
+ if(task.repeat==="weekly"||task.repeat==="biweekly"){const step=(task.repeat==="weekly"?7:14)*86400000;return new Date(base.getTime()+Math.max(0,Math.floor((now-base)/step))*step);}
+ if(task.repeat==="monthly"){let n=(now.getFullYear()-base.getFullYear())*12+now.getMonth()-base.getMonth();let d=addMonthsClamped(base,Math.max(0,n));if(d>now&&n>0)d=addMonthsClamped(base,n-1);return d;} return base;
 }
 function occurrenceKey(task){const d=occurrenceDue(task);return d&&!Number.isNaN(d.getTime())?d.toISOString().slice(0,16):"unknown";}
-function formatTaskDue(task){
-  const d=occurrenceDue(task);if(!d||Number.isNaN(d.getTime()))return "未設定";
-  const time=(d.getHours()||d.getMinutes())?` ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`:"";
-  const rr=repeatLabel(task.repeat);return `${d.getMonth()+1}/${d.getDate()}${time}${rr?` · ${rr}`:""}${d<Date.now()?" 已截止":""}`;
-}
+function formatTaskDue(task){const d=occurrenceDue(task);if(!d||Number.isNaN(d.getTime()))return "未設定";const time=(d.getHours()||d.getMinutes())?` ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`:"";const rr=repeatLabel(task.repeat);return `${d.getMonth()+1}/${d.getDate()}${time}${rr?` · ${rr}`:""}${d<Date.now()?" 已截止":""}`;}
 function taskTypeLabel(type){ return type==="quiz"?"小考":type==="assignment"?"作業":"待辦"; }
 
 function renderTasks(){
@@ -1000,8 +1107,11 @@ async function initAuth(){
         updateAnnouncementControls(null);
         document.querySelector("#memberAdminBtn").style.display="none";
         document.querySelector("#addTaskBtn").style.display="none";
+        document.querySelector("#mailboxBtn").style.display="none";
         if(unsubscribeTasks){unsubscribeTasks();unsubscribeTasks=null;}
-        classTasks=[];
+        if(unsubscribeMailbox){unsubscribeMailbox();unsubscribeMailbox=null;}
+        if(unsubscribeMailboxReplies){unsubscribeMailboxReplies();unsubscribeMailboxReplies=null;}
+        classTasks=[]; mailboxMessages=[]; mailboxReplies=[];
         document.querySelector("#taskList").innerHTML='<div class="task-empty">請先登入以查看待辦事項。</div>';
         if(unsubscribeAnnouncements){unsubscribeAnnouncements();unsubscribeAnnouncements=null;}
         gate.style.display="flex";
@@ -1081,8 +1191,10 @@ async function initAuth(){
         updateAnnouncementControls(member);
         document.querySelector("#memberAdminBtn").style.display=member.role==="advisor"?"inline-block":"none";
         document.querySelector("#addTaskBtn").style.display=(member.role==="advisor"||member.role==="officer")?"inline-block":"none";
+        document.querySelector("#mailboxBtn").style.display="block";
         startAnnouncements();
         startTasks();
+        startMailbox();
 
         await loadCalendarEvents(calendarAccessToken);
       }catch(error){
@@ -1116,6 +1228,7 @@ if(isiOS&&!standalone) document.querySelector("#iosTip").style.display="block";
 document.addEventListener("keydown",e=>{
   if(e.key==="Escape"){
     if(document.querySelector("#taskModal")?.classList.contains("show")) closeTaskModal();
+    if(document.querySelector("#mailboxBackdrop")?.classList.contains("show")) closeMailbox();
   }
 });
 
