@@ -886,12 +886,18 @@ async function loadCalendarEvents(token){
         const result=await reauthenticateWithPopup(auth.currentUser,provider);
         const credential=GoogleAuthProvider.credentialFromResult(result);
         calendarAccessToken=credential?.accessToken||null;
-        if(email===TEST_STUDENT_EMAIL){
+        const currentEmail=(result.user?.email||auth.currentUser?.email||"").toLowerCase();
+        if(currentEmail===TEST_STUDENT_EMAIL){
           document.querySelector("#calendarEvents").innerHTML='<div class="note">測試學生帳號不載入 NTIN 內部班級行事曆；其餘學生端功能可正常測試。</div>';
-        }else{
+        }else if(calendarAccessToken){
           await loadCalendarEvents(calendarAccessToken);
+        }else{
+          document.querySelector("#calendarEvents").innerHTML='<div class="note">未取得 Google Calendar 授權，請再試一次。</div>';
         }
-      }catch(error){console.error("Calendar reauthorization failed:",error);}
+      }catch(error){
+        console.error("Calendar reauthorization failed:",error);
+        document.querySelector("#calendarEvents").innerHTML='<div class="note">重新授權失敗，請確認選擇的是 NTIN 學校帳號後再試一次。<button class="auth-btn" id="calendarReconnectBtn" style="margin-top:10px" onclick="location.reload()">重新載入</button></div>';
+      }
     };
     return;
   }
@@ -901,6 +907,10 @@ async function loadCalendarEvents(token){
     const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?${params}`;
     const response=await fetch(url,{headers:{Authorization:`Bearer ${token}`}});
     if(response.status===401){calendarAccessToken=null;return loadCalendarEvents(null);}
+    if(response.status===403){
+      box.innerHTML='<div class="note">目前帳號沒有讀取班級行事曆的權限。請確認重新授權時使用 NTIN 學校帳號。</div>';
+      return;
+    }
     if(!response.ok) throw new Error(`Calendar API ${response.status}`);
     const data=await response.json();
     renderCalendarEvents(data.items||[]);
