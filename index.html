@@ -209,6 +209,39 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
   .member-actions{justify-content:space-between}
 }
 
+
+/* v8.5：Firestore 待辦管理＋公告連動 */
+.task-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.task-head h2{margin:0}
+.add-task-btn{display:none;border:0;border-radius:10px;padding:9px 12px;background:var(--accent);color:#fff;font-weight:800;cursor:pointer;white-space:nowrap}
+.task{position:relative}
+.task-main{display:flex;gap:12px;align-items:flex-start;flex:1;min-width:0}
+.task-actions{display:flex;gap:6px;align-items:center}
+.task-manage-btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 8px;font-size:12px;font-weight:800;cursor:pointer}
+.task-manage-btn.delete{color:#b64d3a;border-color:#f2c5bc;background:#fff4f1}
+.task-done-btn{border:1px solid var(--line);background:#fff;color:#566168;border-radius:9px;padding:7px 9px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}
+.task-done-btn.completed{background:#eaf8f4;color:#287865;border-color:#cce8df}
+.task-linked{font-size:11px;color:#6c7f91;margin-top:5px}
+.task-empty{padding:14px 0;color:var(--muted);font-size:14px}
+.task-form{display:grid;gap:12px}
+.task-form label{font-size:13px;font-weight:700;color:#566168}
+.task-form input,.task-form select,.task-form textarea{width:100%;margin-top:5px;border:1px solid var(--line);border-radius:11px;padding:11px 12px;font:inherit;color:var(--text);background:#fff}
+.task-form textarea{min-height:90px;resize:vertical}
+.link-task-box{display:grid;gap:10px;width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;background:#fafcfd}
+.link-task-check{display:flex!important;align-items:center;gap:8px!important}
+.link-task-check input{width:auto!important;margin:0!important}
+.link-task-fields{display:none;grid-template-columns:1fr 1fr;gap:10px}
+.link-task-fields.show{display:grid}
+.link-task-fields label:last-child{grid-column:1/-1}
+@media(max-width:760px){
+  .task-head{align-items:center}
+  .add-task-btn{font-size:14px;padding:9px 11px}
+  .task{display:grid;grid-template-columns:1fr}
+  .task-actions{justify-content:flex-end;flex-wrap:wrap}
+  .link-task-fields{grid-template-columns:1fr}
+  .link-task-fields label:last-child{grid-column:auto}
+}
+
 </style>
 </head>
 <body><div class="access-gate" id="accessGate"><div class="gate-card"><div class="gate-mark">🏫</div><h2>五護101班｜班級公告欄</h2><p>請使用國立臺南護理專科學校 Google 帳號登入，以查看班級公告與行程。</p><button class="auth-btn primary" id="googleLoginBtn">使用 NTIN Google 帳號登入</button><div class="gate-loading" id="gateLoading">正在確認登入狀態…</div><div class="gate-error" id="gateError"></div></div></div>
@@ -222,13 +255,9 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 <div class="reminder-actions"><div class="deadline">截止：9/18 23:59</div><button class="quick-done" id="quickDoneBtn">已完成</button></div></div>
 <div class="grid"><div><section id="notices"><div class="notice-head"><h2>📌 最新公告</h2><button class="add-notice-btn" id="addNoticeBtn">＋ 新增公告</button></div><div class="filters">
 <button class="filter active" data-filter="全部">全部</button><button class="filter" data-filter="重要">重要</button><button class="filter" data-filter="課務">課務</button><button class="filter" data-filter="班務">班務</button><button class="filter" data-filter="活動">活動</button><button class="filter" data-filter="獎助學金">獎助學金</button><button class="filter" data-filter="其他">其他</button></div><div id="noticeList"></div></section>
-<section id="tasks" style="margin-top:22px"><h2>📝 小考、作業與待辦</h2>
-<div class="task-list">
-<div class="task assignment"><span class="dot"></span><div class="task-info"><div class="task-title">基本護理學｜課前作業</div><div class="task-sub">請於 Classroom 完成並確認已繳交</div></div><div class="task-time">9/18 截止</div></div>
-<div class="task quiz"><span class="dot"></span><div class="task-info"><div class="task-title">基本護理學｜小考</div><div class="task-sub">範圍：本週授課內容</div></div><div class="task-time">9/24</div></div>
-<div class="task assignment"><span class="dot"></span><div class="task-info"><div class="task-title">家長同意書</div><div class="task-sub">紙本｜請交給指定幹部</div></div><div class="task-time">9/25 截止</div></div>
-<div class="task assignment"><span class="dot"></span><div class="task-info"><div class="task-title">班級餐費</div><div class="task-sub">費用｜請依班級公告方式繳交</div></div><div class="task-time">9/26 截止</div></div>
-</div><div class="note">正式版可依截止日期自動排序，已完成的項目可隱藏或標示完成。</div>
+<section id="tasks" style="margin-top:22px">
+<div class="task-head"><h2>📝 小考、作業與待辦</h2><button class="add-task-btn" id="addTaskBtn">＋ 新增待辦</button></div>
+<div class="task-list" id="taskList"><div class="task-empty">正在載入待辦事項…</div></div>
 </section></div>
 <div><section id="calendar"><div class="calendar-head"><h2>📅 近期行程</h2><a class="calendar-full-link" id="fullCalendarLink" href="https://calendar.google.com/calendar/u/1?cid=Y19jbGFzc3Jvb204Yjk0MGYxNkBncm91cC5jYWxlbmRhci5nb29nbGUuY29t" target="_blank" rel="noopener noreferrer" aria-label="查看完整班級行事曆">🗓 查看完整行事曆 ↗</a></div>
 <div id="calendarEvents"><div class="note">正在準備班級行事曆…</div></div></section>
@@ -316,11 +345,52 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
       </label>
       <div class="announcement-options">
         <label><input id="announcementPinned" type="checkbox"> 置頂</label>
+        <div class="link-task-box">
+          <label class="link-task-check"><input id="announcementAddTask" type="checkbox"> 同時加入「小考、作業與待辦」</label>
+          <div class="link-task-fields" id="announcementTaskFields">
+            <label>待辦類型
+              <select id="announcementTaskType"><option value="todo">待辦</option><option value="assignment">作業</option><option value="quiz">小考</option></select>
+            </label>
+            <label>日期／截止時間
+              <input id="announcementTaskDue" type="datetime-local">
+            </label>
+            <label>待辦說明（可留空）
+              <input id="announcementTaskNote" type="text" maxlength="160" placeholder="例如：請交給班長／請於 Classroom 繳交">
+            </label>
+          </div>
+        </div>
       </div>
       <div class="form-error" id="announcementError"></div>
       <div class="modal-actions">
         <button class="done" id="publishAnnouncementBtn">發布公告</button>
         <button class="later" id="cancelAnnouncementBtn">取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal-backdrop" id="taskModal" role="dialog" aria-modal="true" aria-labelledby="taskModalTitle">
+  <div class="modal">
+    <div class="modal-icon">📝</div>
+    <h3 id="taskModalTitle">新增待辦事項</h3>
+    <div class="task-form">
+      <label>類型
+        <select id="taskType"><option value="todo">待辦</option><option value="assignment">作業</option><option value="quiz">小考</option></select>
+      </label>
+      <label>標題
+        <input id="taskTitle" type="text" maxlength="80" placeholder="例如：繳交班級餐費">
+      </label>
+      <label>說明
+        <textarea id="taskNote" maxlength="300" placeholder="補充繳交方式、範圍或注意事項"></textarea>
+      </label>
+      <label>日期／截止時間
+        <input id="taskDue" type="datetime-local">
+      </label>
+      <div class="form-error" id="taskError"></div>
+      <div class="modal-actions">
+        <button class="done" id="saveTaskBtn">新增待辦</button>
+        <button class="later" id="cancelTaskBtn">取消</button>
       </div>
     </div>
   </div>
@@ -335,7 +405,7 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, reauthenticateWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-import { getFirestore, doc, getDoc, getDocs, setDoc, collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, getDocs, setDoc, collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 const firebaseConfig={apiKey:"AIzaSyDriaciyyXKRP6LE5emJDnvwPDA5QucUW0",authDomain:"ntin115-5n01.firebaseapp.com",projectId:"ntin115-5n01",storageBucket:"ntin115-5n01.firebasestorage.app",messagingSenderId:"145636669643",appId:"1:145636669643:web:827aa85da0cc7942eec34e"};
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
@@ -353,6 +423,9 @@ let unsubscribeAnnouncements=null;
 let selectedNotice=null;
 let editingNoticeId=null;
 let classMembers=[];
+let classTasks=[];
+let unsubscribeTasks=null;
+let editingTaskId=null;
 
 const gate=document.querySelector("#accessGate");
 const gateLoading=document.querySelector("#gateLoading");
@@ -422,6 +495,127 @@ async function loadCalendarEvents(token){
 }
 
 
+
+
+function canManageTask(task){
+  if(currentMember?.role==="advisor") return true;
+  return currentMember?.role==="officer" && task?.authorUid===auth.currentUser?.uid;
+}
+function timestampToLocalInput(ts){
+  if(!ts) return "";
+  const d=ts?.toDate ? ts.toDate() : new Date(ts);
+  if(Number.isNaN(d.getTime())) return "";
+  const pad=n=>String(n).padStart(2,"0");
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function formatTaskDue(ts){
+  if(!ts) return "未設定";
+  const d=ts?.toDate ? ts.toDate() : new Date(ts);
+  const hasTime=d.getHours()!==0||d.getMinutes()!==0;
+  return `${d.getMonth()+1}/${d.getDate()}${hasTime?` ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`:""}${d<Date.now()?" 已截止":""}`;
+}
+function taskTypeLabel(type){ return type==="quiz"?"小考":type==="assignment"?"作業":"待辦"; }
+
+function renderTasks(){
+  const box=document.querySelector("#taskList");
+  if(!classTasks.length){box.innerHTML='<div class="task-empty">目前沒有待辦事項。</div>';return;}
+  const sorted=[...classTasks].sort((a,b)=>{
+    const ad=a.dueAt?.toMillis?.()??new Date(a.dueAt||0).getTime();
+    const bd=b.dueAt?.toMillis?.()??new Date(b.dueAt||0).getTime();
+    return ad-bd;
+  });
+  box.innerHTML="";
+  sorted.forEach(t=>{
+    const row=document.createElement("div");
+    row.className=`task ${t.type==="quiz"?"quiz":"assignment"}`;
+    const doneKey=`class101_task_${t.id}_done`;
+    const done=localStorage.getItem(doneKey)==="1";
+    const linked=t.sourceAnnouncementId ? '<div class="task-linked">由班級公告加入</div>' : '';
+    const manage=canManageTask(t)?`<button class="task-manage-btn" data-edit-task="${t.id}">編輯</button><button class="task-manage-btn delete" data-delete-task="${t.id}">刪除</button>`:"";
+    row.innerHTML=`<div class="task-main"><span class="dot"></span><div class="task-info"><div class="task-title">${escHtml(t.title||"未命名待辦")}</div><div class="task-sub">${escHtml(t.note||taskTypeLabel(t.type))}</div>${linked}</div><div class="task-time">${escHtml(formatTaskDue(t.dueAt))}</div></div><div class="task-actions"><button class="task-done-btn ${done?"completed":""}" data-done-task="${t.id}">${done?"✓ 已完成":"已完成"}</button>${manage}</div>`;
+    box.appendChild(row);
+  });
+  box.querySelectorAll("[data-done-task]").forEach(btn=>btn.onclick=()=>{
+    const key=`class101_task_${btn.dataset.doneTask}_done`;
+    const done=localStorage.getItem(key)==="1";
+    if(done){localStorage.removeItem(key);btn.classList.remove("completed");btn.textContent="已完成";}
+    else{localStorage.setItem(key,"1");btn.classList.add("completed");btn.textContent="✓ 已完成";}
+  });
+  box.querySelectorAll("[data-edit-task]").forEach(btn=>btn.onclick=()=>openTaskModal(classTasks.find(t=>t.id===btn.dataset.editTask)));
+  box.querySelectorAll("[data-delete-task]").forEach(btn=>btn.onclick=()=>deleteTaskById(btn.dataset.deleteTask));
+}
+
+function startTasks(){
+  if(unsubscribeTasks) unsubscribeTasks();
+  const q=query(collection(db,"tasks"));
+  unsubscribeTasks=onSnapshot(q,snap=>{
+    classTasks=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderTasks();
+  },error=>{
+    console.error("Task listener failed:",error);
+    document.querySelector("#taskList").innerHTML='<div class="task-empty">目前無法載入待辦事項。</div>';
+  });
+}
+
+function openTaskModal(task=null){
+  if(!(currentMember?.role==="advisor"||currentMember?.role==="officer")) return;
+  if(task && !canManageTask(task)) return;
+  editingTaskId=task?.id||null;
+  document.querySelector("#taskModalTitle").textContent=editingTaskId?"編輯待辦事項":"新增待辦事項";
+  document.querySelector("#saveTaskBtn").textContent=editingTaskId?"儲存修改":"新增待辦";
+  document.querySelector("#taskType").value=task?.type||"todo";
+  document.querySelector("#taskTitle").value=task?.title||"";
+  document.querySelector("#taskNote").value=task?.note||"";
+  document.querySelector("#taskDue").value=timestampToLocalInput(task?.dueAt);
+  document.querySelector("#taskError").style.display="none";
+  document.querySelector("#taskModal").classList.add("show");
+}
+function closeTaskModal(){document.querySelector("#taskModal").classList.remove("show");editingTaskId=null;}
+
+async function saveTask(){
+  const err=document.querySelector("#taskError"), btn=document.querySelector("#saveTaskBtn");
+  const title=document.querySelector("#taskTitle").value.trim();
+  const note=document.querySelector("#taskNote").value.trim();
+  const type=document.querySelector("#taskType").value;
+  const due=document.querySelector("#taskDue").value;
+  if(!title||!due){err.textContent="請填寫標題與日期／截止時間。";err.style.display="block";return;}
+  if(!(currentMember?.role==="advisor"||currentMember?.role==="officer")||!auth.currentUser)return;
+  btn.disabled=true;
+  try{
+    if(editingTaskId){
+      const old=classTasks.find(t=>t.id===editingTaskId);
+      await updateDoc(doc(db,"tasks",editingTaskId),{title,note,type,dueAt:new Date(due),updatedAt:serverTimestamp()});
+      // 若這是公告連動待辦，待辦標題變更不反向修改公告；避免意外改公告正文。
+    }else{
+      await addDoc(collection(db,"tasks"),{
+        title,note,type,dueAt:new Date(due),
+        authorUid:auth.currentUser.uid,
+        authorName:currentMember.name||auth.currentUser.displayName||"",
+        sourceAnnouncementId:null,
+        createdAt:serverTimestamp()
+      });
+    }
+    closeTaskModal();
+  }catch(e){console.error(e);err.textContent="待辦儲存失敗，請確認 Firestore 規則。";err.style.display="block";}
+  finally{btn.disabled=false;}
+}
+
+async function deleteTaskById(id){
+  const task=classTasks.find(t=>t.id===id);
+  if(!task||!canManageTask(task))return;
+  const msg=task.sourceAnnouncementId?"這個待辦由公告連動建立。刪除待辦不會刪除原公告，確定刪除嗎？":"確定刪除這個待辦事項嗎？";
+  if(!confirm(msg))return;
+  try{await deleteDoc(doc(db,"tasks",id));}
+  catch(e){console.error(e);alert("待辦刪除失敗，請稍後再試。");}
+}
+
+document.querySelector("#addTaskBtn").onclick=()=>openTaskModal();
+document.querySelector("#cancelTaskBtn").onclick=closeTaskModal;
+document.querySelector("#saveTaskBtn").onclick=saveTask;
+document.querySelector("#taskModal").onclick=e=>{if(e.target===document.querySelector("#taskModal"))closeTaskModal();};
+document.querySelector("#announcementAddTask").onchange=e=>{
+  document.querySelector("#announcementTaskFields").classList.toggle("show",e.target.checked);
+};
 
 function memberRoleLabel(role){
   return role==="advisor"?"導師":role==="officer"?"班級幹部":"學生";
@@ -609,6 +803,12 @@ function openAnnouncementModal(notice=null){
   document.querySelector("#announcementTitle").value=notice?.title||"";
   document.querySelector("#announcementContent").value=notice?.content||"";
   document.querySelector("#announcementPinned").checked=notice?.pinned===true;
+  const linkedTask=notice?.id ? classTasks.find(t=>t.sourceAnnouncementId===notice.id) : null;
+  document.querySelector("#announcementAddTask").checked=!!linkedTask;
+  document.querySelector("#announcementTaskFields").classList.toggle("show",!!linkedTask);
+  document.querySelector("#announcementTaskType").value=linkedTask?.type||"todo";
+  document.querySelector("#announcementTaskDue").value=timestampToLocalInput(linkedTask?.dueAt);
+  document.querySelector("#announcementTaskNote").value=linkedTask?.note||"";
   document.querySelector("#announcementError").style.display="none";
   document.querySelector("#announcementModal").classList.add("show");
 }
@@ -620,59 +820,77 @@ async function publishAnnouncement(){
   const content=document.querySelector("#announcementContent").value.trim();
   const category=document.querySelector("#announcementCategory").value;
   const pinned=document.querySelector("#announcementPinned").checked;
+  const addTask=document.querySelector("#announcementAddTask").checked;
+  const taskType=document.querySelector("#announcementTaskType").value;
+  const taskDueValue=document.querySelector("#announcementTaskDue").value;
+  const taskNote=document.querySelector("#announcementTaskNote").value.trim();
 
   if(!title||!content){
-    errorBox.textContent="請填寫公告標題與內容。";
-    errorBox.style.display="block";
-    return;
+    errorBox.textContent="請填寫公告標題與內容。"; errorBox.style.display="block"; return;
+  }
+  if(addTask && !taskDueValue){
+    errorBox.textContent="勾選加入待辦後，請設定日期或截止時間。"; errorBox.style.display="block"; return;
   }
   if(!(currentMember?.role==="advisor"||currentMember?.role==="officer")||!auth.currentUser){
-    errorBox.textContent="目前帳號沒有發布公告的權限。";
-    errorBox.style.display="block";
-    return;
+    errorBox.textContent="目前帳號沒有發布公告的權限。"; errorBox.style.display="block"; return;
   }
 
-  publishBtn.disabled=true;
-  publishBtn.textContent="發布中…";
-  errorBox.style.display="none";
+  publishBtn.disabled=true; publishBtn.textContent="儲存中…"; errorBox.style.display="none";
   try{
+    let announcementId=editingNoticeId;
     if(editingNoticeId){
-      await updateDoc(doc(db,"announcements",editingNoticeId),{
-        title,
-        content,
-        category,
-        pinned,
-        updatedAt:serverTimestamp()
-      });
+      await updateDoc(doc(db,"announcements",editingNoticeId),{title,content,category,pinned,updatedAt:serverTimestamp()});
     }else{
-      await addDoc(collection(db,"announcements"),{
-        title,
-        content,
-        category,
-        pinned,
-        published:true,
+      const ref=await addDoc(collection(db,"announcements"),{
+        title,content,category,pinned,published:true,
         authorUid:auth.currentUser.uid,
         authorName:currentMember.name||auth.currentUser.displayName||"",
         createdAt:serverTimestamp()
       });
+      announcementId=ref.id;
     }
+
+    const existingTask=classTasks.find(t=>t.sourceAnnouncementId===announcementId);
+    if(addTask){
+      const payload={
+        title,
+        note:taskNote,
+        type:taskType,
+        dueAt:new Date(taskDueValue),
+        sourceAnnouncementId:announcementId,
+        authorUid:auth.currentUser.uid,
+        authorName:currentMember.name||auth.currentUser.displayName||"",
+        updatedAt:serverTimestamp()
+      };
+      if(existingTask){
+        await updateDoc(doc(db,"tasks",existingTask.id),payload);
+      }else{
+        await addDoc(collection(db,"tasks"),{...payload,createdAt:serverTimestamp()});
+      }
+    }else if(existingTask && canManageTask(existingTask)){
+      await deleteDoc(doc(db,"tasks",existingTask.id));
+    }
+
     editingNoticeId=null;
     document.querySelector("#announcementTitle").value="";
     document.querySelector("#announcementContent").value="";
     document.querySelector("#announcementCategory").value="班務";
     document.querySelector("#announcementPinned").checked=false;
+    document.querySelector("#announcementAddTask").checked=false;
+    document.querySelector("#announcementTaskFields").classList.remove("show");
+    document.querySelector("#announcementTaskDue").value="";
+    document.querySelector("#announcementTaskNote").value="";
     document.querySelector("#announcementModal").classList.remove("show");
     closeNoticeDetail();
   }catch(error){
     console.error("Announcement publish failed:",error);
-    errorBox.textContent="公告發布失敗，請確認 Firestore 規則與帳號權限。";
+    errorBox.textContent="儲存失敗，請確認 Firestore 規則與帳號權限。";
     errorBox.style.display="block";
   }finally{
     publishBtn.disabled=false;
     publishBtn.textContent=document.querySelector("#announcementModalTitle").textContent.startsWith("編輯")?"儲存修改":"發布公告";
   }
 }
-
 
 document.querySelector("#editNoticeBtn").onclick=()=>{
   if(!selectedNotice || !canManageNotice(selectedNotice)) return;
@@ -697,7 +915,11 @@ document.querySelector("#confirmDeleteNoticeBtn").onclick=async()=>{
   btn.disabled=true;
   btn.textContent="刪除中…";
   try{
-    await deleteDoc(doc(db,"announcements",selectedNotice.id));
+    const linkedTask=classTasks.find(t=>t.sourceAnnouncementId===selectedNotice.id);
+    const batch=writeBatch(db);
+    batch.delete(doc(db,"announcements",selectedNotice.id));
+    if(linkedTask && canManageTask(linkedTask)) batch.delete(doc(db,"tasks",linkedTask.id));
+    await batch.commit();
     document.querySelector("#deleteNoticeBackdrop").classList.remove("show");
     closeNoticeDetail();
     selectedNotice=null;
@@ -755,6 +977,10 @@ async function initAuth(){
         currentMember=null;
         updateAnnouncementControls(null);
         document.querySelector("#memberAdminBtn").style.display="none";
+        document.querySelector("#addTaskBtn").style.display="none";
+        if(unsubscribeTasks){unsubscribeTasks();unsubscribeTasks=null;}
+        classTasks=[];
+        document.querySelector("#taskList").innerHTML='<div class="task-empty">請先登入以查看待辦事項。</div>';
         if(unsubscribeAnnouncements){unsubscribeAnnouncements();unsubscribeAnnouncements=null;}
         gate.style.display="flex";
         userBox.style.display="none";
@@ -832,7 +1058,9 @@ async function initAuth(){
         gate.style.display="none";
         updateAnnouncementControls(member);
         document.querySelector("#memberAdminBtn").style.display=member.role==="advisor"?"inline-block":"none";
+        document.querySelector("#addTaskBtn").style.display=(member.role==="advisor"||member.role==="officer")?"inline-block":"none";
         startAnnouncements();
+        startTasks();
 
         await loadCalendarEvents(calendarAccessToken);
       }catch(error){
@@ -861,43 +1089,12 @@ ib.onclick=async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await def
 const isiOS=/iphone|ipad|ipod/i.test(navigator.userAgent);const standalone=window.matchMedia("(display-mode: standalone)").matches||navigator.standalone;
 if(isiOS&&!standalone) document.querySelector("#iosTip").style.display="block";
 
-const modal=document.querySelector("#submitModal");
-const taskKey="class101_task_demo_20260918";
-const snoozeKey=taskKey+"_snooze";
-const demoDue=new Date(Date.now()+36*60*60*1000); // prototype: simulate a deadline within 2–3 days
-function openReminder(){
- const status=localStorage.getItem(taskKey);
- const snoozeUntil=Number(localStorage.getItem(snoozeKey)||0);
- const hoursLeft=(demoDue-Date.now())/3600000;
- // Only interrupt when due within 72 hours, unfinished, and not currently snoozed.
- if(status!=="done" && hoursLeft>=0 && hoursLeft<=72 && Date.now()>snoozeUntil){
-   setTimeout(()=>modal.classList.add("show"),500);
- }
- if(status==="done"){
-   const quickBtn=document.querySelector("#quickDoneBtn");
-   quickBtn.classList.add("completed");
-   quickBtn.textContent="✓ 已完成";
- }
-}
-function markTaskDone(){
- localStorage.setItem(taskKey,"done");
- localStorage.removeItem(snoozeKey);
- modal.classList.remove("show");
- const quickBtn=document.querySelector("#quickDoneBtn");
- quickBtn.classList.add("completed");
- quickBtn.textContent="✓ 已完成";
-}
-document.querySelector("#doneBtn").onclick=markTaskDone;
-document.querySelector("#quickDoneBtn").onclick=markTaskDone;
-document.querySelector("#laterBtn").onclick=()=>{
- // Formal version: do not nag repeatedly in the same visit; snooze for 12 hours.
- localStorage.setItem(snoozeKey,String(Date.now()+12*60*60*1000));
- modal.classList.remove("show");
-};
-document.querySelector("#closeBtn").onclick=()=>{
- // Closing only suppresses this page view; it can remind again on a later visit.
- modal.classList.remove("show");
-};
-modal.onclick=e=>{if(e.target===modal) modal.classList.remove("show")};
-openReminder();
+// v8.5：舊版單一示範提醒已停用，改由 Firestore tasks 管理。
+
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"){
+    if(document.querySelector("#taskModal")?.classList.contains("show")) closeTaskModal();
+  }
+});
+
 </script></body></html>
