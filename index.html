@@ -1021,6 +1021,9 @@ function openMailbox(){mailboxView=isAdvisorMail()?"inbox":"compose";selectedMai
 function closeMailbox(){document.querySelector("#mailboxBackdrop").classList.remove("show");document.body.style.overflow="";selectedMailboxId=null}
 document.querySelector("#mailboxBottomBtn").onclick=e=>{e.preventDefault();openMailbox()};document.querySelector("#mailboxClose").onclick=closeMailbox;document.querySelector("#mailboxBackdrop").onclick=e=>{if(e.target===document.querySelector("#mailboxBackdrop"))closeMailbox()};
 
+function canPublishAnnouncements(){
+  return currentMember?.role==="advisor" || currentMember?.role==="officer";
+}
 function canEditTasks(){
   return currentMember?.role==="advisor"
     || currentMember?.role==="officer"
@@ -1393,11 +1396,11 @@ function startAnnouncements(){
 
 function updateAnnouncementControls(member){
   const btn=document.querySelector("#addNoticeBtn");
-  btn.style.display=(member?.role==="advisor"||member?.role==="officer")?"inline-block":"none";
+  btn.style.display=canPublishAnnouncements()?"inline-block":"none";
 }
 
 function openAnnouncementModal(notice=null){
-  if(!canEditTasks()) return;
+  if(!canPublishAnnouncements()) return;
   if(notice && !canManageNotice(notice)) return;
 
   editingNoticeId=notice?.id||null;
@@ -1437,7 +1440,7 @@ async function publishAnnouncement(){
   if(addTask && !taskDueValue){
     errorBox.textContent="勾選加入待辦後，請設定日期或截止時間。"; errorBox.style.display="block"; return;
   }
-  if(!(currentMember?.role==="advisor"||currentMember?.role==="officer")||!auth.currentUser){
+  if(!canPublishAnnouncements()||!auth.currentUser){
     errorBox.textContent="目前帳號沒有發布公告的權限。"; errorBox.style.display="block"; return;
   }
 
@@ -1665,7 +1668,9 @@ async function initAuth(){
           officer:"班級幹部",
           student:"學生"
         };
-        const roleLabel=roleLabels[member.role]||"班級成員";
+        let roleLabel=roleLabels[member.role]||"班級成員";
+        if(member.taskEditor===true && member.role==="student") roleLabel="小老師";
+        if(member.taskEditor===true && member.role==="officer") roleLabel="班級幹部・小老師";
 
         document.querySelector("#userName").textContent=member.name||user.displayName||"NTIN 使用者";
         document.querySelector("#userEmail").textContent=`${roleLabel}｜${member.email||user.email||""}`;
@@ -1675,7 +1680,7 @@ async function initAuth(){
         gate.style.display="none";
         updateAnnouncementControls(member);
         document.querySelector("#memberAdminBtn").style.display=member.role==="advisor"?"inline-block":"none";
-        document.querySelector("#addTaskBtn").style.display=(member.role==="advisor"||member.role==="officer")?"inline-block":"none";
+        document.querySelector("#addTaskBtn").style.display=canEditTasks()?"inline-block":"none";
         document.querySelector("#editTimetableBtn").style.display=member.role==="advisor"?"inline-block":"none";
         document.querySelector("#seatToolBtn").style.display=member.role==="advisor"?"flex":"none";
         document.querySelector("#mailboxBottomBtn").style.display="flex";
