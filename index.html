@@ -309,6 +309,30 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
     margin:0 0 4px;
   }
 }
+
+/* v8.7.5：預留底部快捷列空間，避免常用連結被遮住 */
+@media(max-width:760px){
+  main{
+    padding-bottom:calc(100px + env(safe-area-inset-bottom));
+  }
+}
+
+/* v8.8 Firestore 可編輯課表 */
+.timetable-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.timetable td.course-cell{min-width:110px;vertical-align:middle}
+.course-name{font-weight:800;line-height:1.35}
+.course-room{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.3}
+.timetable-edit-modal{width:min(960px,96vw);max-height:90vh;overflow:auto}
+.timetable-editor-wrap{overflow:auto;margin-top:14px}
+.timetable-editor{min-width:760px}
+.timetable-editor td{padding:8px}
+.timetable-editor input{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:8px;padding:8px;font:inherit;background:#fff}
+.timetable-editor .room-input{margin-top:6px;font-size:13px}
+@media(max-width:760px){
+ .timetable-head{align-items:center}
+ .timetable-edit-modal{width:100%;max-height:92vh;border-radius:22px 22px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom))}
+ #timetableBackdrop{align-items:flex-end;padding:0}
+}
 </style>
 </head>
 <body><div class="access-gate" id="accessGate"><div class="gate-card"><div class="gate-mark">🏫</div><h2>五護101班｜班級公告欄</h2><p>請使用國立臺南護理專科學校 Google 帳號登入，以查看班級公告與行程。</p><button class="auth-btn primary" id="googleLoginBtn">使用 NTIN Google 帳號登入</button><div class="gate-loading" id="gateLoading">正在確認登入狀態…</div><div class="gate-error" id="gateError"></div></div></div>
@@ -317,9 +341,9 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 <div class="hero"><small id="today"></small><h1>五護101班｜班級公告欄</h1><p>重要通知、近期行程與班級常用資訊，都整理在這裡。</p>
 <button class="install" id="installBtn">安裝「五護101班」到手機</button>
 <div class="ios-tip" id="iosTip">iPhone / iPad：請用 Safari 開啟此頁，點「分享」→「加入主畫面」，即可像 App 一樣從桌面開啟。</div></div>
-<div class="reminder-banner" id="urgentReminder">
-<div><strong>⚠️ 重要待辦｜基本護理學課前作業</strong><span><b>作業</b>｜請確認已完成並送出，避免只上傳但未按「繳交」。</span></div>
-<div class="reminder-actions"><div class="deadline">截止：9/18 23:59</div><button class="quick-done" id="quickDoneBtn">已完成</button></div></div>
+<div class="reminder-banner" id="urgentReminder" style="display:none">
+<div><strong id="urgentTaskTitle">重要待辦</strong><span id="urgentTaskNote"></span></div>
+<div class="reminder-actions"><div class="deadline" id="urgentTaskDeadline"></div><button class="quick-done" id="quickDoneBtn">已完成</button></div></div>
 <div class="grid"><div><section id="notices"><div class="notice-head"><h2>📌 最新公告</h2><button class="add-notice-btn" id="addNoticeBtn">＋ 新增公告</button></div><div class="filters">
 <button class="filter active" data-filter="全部">全部</button><button class="filter" data-filter="重要">重要</button><button class="filter" data-filter="課務">課務</button><button class="filter" data-filter="班務">班務</button><button class="filter" data-filter="活動">活動</button><button class="filter" data-filter="獎助學金">獎助學金</button><button class="filter" data-filter="其他">其他</button></div><div id="noticeList"></div></section>
 <section id="tasks" style="margin-top:22px">
@@ -328,15 +352,13 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 </section></div>
 <div><section id="calendar"><div class="calendar-head"><h2>📅 近期行程</h2><a class="calendar-full-link" id="fullCalendarLink" href="https://calendar.google.com/calendar/u/1?cid=Y19jbGFzc3Jvb204Yjk0MGYxNkBncm91cC5jYWxlbmRhci5nb29nbGUuY29t" target="_blank" rel="noopener noreferrer" aria-label="查看完整班級行事曆">🗓 查看完整行事曆 ↗</a></div>
 <div id="calendarEvents"><div class="note">正在準備班級行事曆…</div></div></section>
-<section id="timetable" style="margin-top:22px"><h2>📚 本週課表</h2>
-<div class="timetable-wrap"><table class="timetable">
+<section id="timetable" style="margin-top:22px">
+<div class="timetable-head"><h2>📚 本週課表</h2><button class="add-task-btn" id="editTimetableBtn" style="display:none">編輯課表</button></div>
+<div class="timetable-wrap"><table class="timetable" id="timetableTable">
 <tr><th></th><th>週一</th><th>週二</th><th>週三</th><th>週四</th><th>週五</th></tr>
-<tr><td class="period">1–2</td><td></td><td class="course warm">課程</td><td class="course">課程</td><td></td><td class="course alt">課程</td></tr>
-<tr><td class="period">3–4</td><td class="course">課程</td><td></td><td class="course alt">課程</td><td class="course warm">課程</td><td></td></tr>
-<tr><td class="period">5–6</td><td class="course alt">課程</td><td class="course">課程</td><td></td><td class="course">課程</td><td class="course warm">課程</td></tr>
-<tr><td class="period">7–8</td><td></td><td class="course alt">課程</td><td class="course warm">課程</td><td></td><td class="course">課程</td></tr>
+<tbody id="timetableBody"><tr><td colspan="6" class="note">正在載入課表…</td></tr></tbody>
 </table></div>
-<div class="note">目前先以示意課表呈現。之後可換成五護101班的實際課表，並讓臨時調課以醒目標籤顯示。</div></section>
+<div class="note">課表由導師統一維護；臨時調課建議仍以公告與班級行事曆通知。</div></section>
 <section id="rules" style="margin-top:22px"><h2>📌 班級規範</h2>
 <a class="link" href="#" id="classRulesLink" style="display:flex;align-items:center;justify-content:space-between;gap:14px;text-decoration:none">
 <div><b>五護101班｜班規</b><div class="meta" style="margin-top:5px">查看班級共同約定、生活規範與重要注意事項</div></div>
@@ -350,6 +372,13 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 
 
 
+
+<div class="modal-backdrop" id="timetableBackdrop" role="dialog" aria-modal="true">
+<div class="modal timetable-edit-modal">
+<div class="member-admin-top"><div><div class="meta">僅導師可編輯</div><h3>編輯本週課表</h3></div><button class="notice-close" id="timetableClose">×</button></div>
+<div class="timetable-editor-wrap"><table class="timetable timetable-editor" id="timetableEditor"></table></div>
+<div class="modal-actions"><button id="timetableCancel">取消</button><button class="primary" id="timetableSave">儲存課表</button></div>
+</div></div>
 
 <div class="modal-backdrop" id="mailboxBackdrop" role="dialog" aria-modal="true">
  <div class="modal mailbox-modal">
@@ -509,6 +538,7 @@ let classTasks=[];
 let unsubscribeTasks=null;
 let editingTaskId=null;
 let mailboxMessages=[]; let mailboxReplies=[]; let mailboxView="compose"; let selectedMailboxId=null; let unsubscribeMailbox=null; let unsubscribeMailboxReplies=null;
+let timetableData={}; let unsubscribeTimetable=null;
 
 const gate=document.querySelector("#accessGate");
 const gateLoading=document.querySelector("#gateLoading");
@@ -517,6 +547,63 @@ const loginBtn=document.querySelector("#googleLoginBtn");
 const userBox=document.querySelector("#userBox");
 
 loginBtn.style.display="none";
+
+
+const TT_DAYS=[["mon","週一"],["tue","週二"],["wed","週三"],["thu","週四"],["fri","週五"]];
+const TT_PERIODS=[["1","1"],["2","2"],["3","3"],["4","4"],["5","5"],["6","6"],["7","7"],["8","8"]];
+
+function timetableKey(day,period){return `${day}_${period}`}
+function renderTimetable(){
+  const body=document.querySelector("#timetableBody"); if(!body)return;
+  body.innerHTML=TT_PERIODS.map(([p,pl])=>`<tr><td class="period">${pl}</td>${TT_DAYS.map(([d])=>{
+    const c=timetableData[timetableKey(d,p)]||{};
+    return `<td class="course-cell">${c.course?`<div class="course-name">${escHtml(c.course)}</div>${c.room?`<div class="course-room">${escHtml(c.room)}</div>`:""}`:""}</td>`;
+  }).join("")}</tr>`).join("");
+}
+function renderTimetableEditor(){
+  const table=document.querySelector("#timetableEditor"); if(!table)return;
+  table.innerHTML=`<tr><th></th>${TT_DAYS.map(x=>`<th>${x[1]}</th>`).join("")}</tr>`+
+  TT_PERIODS.map(([p,pl])=>`<tr><td class="period">${pl}</td>${TT_DAYS.map(([d])=>{
+    const k=timetableKey(d,p),c=timetableData[k]||{};
+    return `<td><input data-tt="${k}" data-field="course" value="${escHtml(c.course||"")}" placeholder="課程名稱"><input class="room-input" data-tt="${k}" data-field="room" value="${escHtml(c.room||"")}" placeholder="教室（選填）"></td>`;
+  }).join("")}</tr>`).join("");
+}
+function startTimetable(){
+  if(unsubscribeTimetable)unsubscribeTimetable();
+  unsubscribeTimetable=onSnapshot(doc(db,"timetable","current"),snap=>{
+    timetableData=snap.exists()?(snap.data().cells||{}):{};
+    renderTimetable();
+  },e=>{console.error(e);document.querySelector("#timetableBody").innerHTML='<tr><td colspan="6" class="note">課表載入失敗。</td></tr>'});
+}
+function openTimetableEditor(){
+  if(currentMember?.role!=="advisor")return;
+  renderTimetableEditor();
+  document.querySelector("#timetableBackdrop").classList.add("show");
+  document.body.style.overflow="hidden";
+}
+function closeTimetableEditor(){
+  document.querySelector("#timetableBackdrop").classList.remove("show");
+  document.body.style.overflow="";
+}
+document.querySelector("#editTimetableBtn").onclick=openTimetableEditor;
+document.querySelector("#timetableClose").onclick=closeTimetableEditor;
+document.querySelector("#timetableCancel").onclick=closeTimetableEditor;
+document.querySelector("#timetableBackdrop").onclick=e=>{if(e.target===document.querySelector("#timetableBackdrop"))closeTimetableEditor()};
+document.querySelector("#timetableSave").onclick=async()=>{
+  if(currentMember?.role!=="advisor")return;
+  const cells={};
+  document.querySelectorAll("#timetableEditor [data-tt]").forEach(input=>{
+    const k=input.dataset.tt,field=input.dataset.field;
+    cells[k]??={course:"",room:""};
+    cells[k][field]=input.value.trim();
+  });
+  const btn=document.querySelector("#timetableSave");btn.disabled=true;btn.textContent="儲存中…";
+  try{
+    await setDoc(doc(db,"timetable","current"),{cells,updatedAt:serverTimestamp(),updatedBy:auth.currentUser.uid},{merge:true});
+    closeTimetableEditor();
+  }catch(e){console.error(e);alert("課表儲存失敗，請確認 Firestore Rules 已加入 timetable 權限。")}
+  finally{btn.disabled=false;btn.textContent="儲存課表"}
+};
 
 function showError(message,error=null){
   console.error("Firebase Auth error:",error||message);
@@ -684,6 +771,50 @@ function occurrenceKey(task){const d=occurrenceDue(task);return d&&!Number.isNaN
 function formatTaskDue(task){const d=occurrenceDue(task);if(!d||Number.isNaN(d.getTime()))return "未設定";const time=(d.getHours()||d.getMinutes())?` ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`:"";const rr=repeatLabel(task.repeat);return `${d.getMonth()+1}/${d.getDate()}${time}${rr?` · ${rr}`:""}${d<Date.now()?" 已截止":""}`;}
 function taskTypeLabel(type){ return type==="quiz"?"小考":type==="assignment"?"作業":"待辦"; }
 
+
+function getUrgentTask(){
+  const now=new Date();
+  const candidates=classTasks.map(task=>{
+    const due=occurrenceDue(task,now);
+    return {task,due};
+  }).filter(x=>{
+    if(!x.due||Number.isNaN(x.due.getTime())) return false;
+    const key=`class101_task_${x.task.id}_${occurrenceKey(x.task)}_done`;
+    return x.due>=now && localStorage.getItem(key)!=="1";
+  }).sort((a,b)=>a.due-b.due);
+  return candidates[0]||null;
+}
+
+function renderUrgentTask(){
+  const banner=document.querySelector("#urgentReminder");
+  const title=document.querySelector("#urgentTaskTitle");
+  const note=document.querySelector("#urgentTaskNote");
+  const deadline=document.querySelector("#urgentTaskDeadline");
+  const btn=document.querySelector("#quickDoneBtn");
+  if(!banner||!title||!note||!deadline||!btn) return;
+
+  const item=getUrgentTask();
+  if(!item){
+    banner.style.display="none";
+    btn.onclick=null;
+    return;
+  }
+
+  const task=item.task;
+  const key=`class101_task_${task.id}_${occurrenceKey(task)}_done`;
+  banner.style.display="";
+  title.textContent=`⚠️ 重要待辦｜${task.title||"未命名待辦"}`;
+  note.textContent=`${taskTypeLabel(task.type)}｜${task.note||"請於截止時間前完成。"}`;
+  deadline.textContent=`截止：${formatTaskDue(task)}`;
+  btn.classList.remove("completed");
+  btn.textContent="已完成";
+  btn.onclick=()=>{
+    localStorage.setItem(key,"1");
+    renderTasks();
+    renderUrgentTask();
+  };
+}
+
 function renderTasks(){
   const box=document.querySelector("#taskList");
   if(!classTasks.length){box.innerHTML='<div class="task-empty">目前沒有待辦事項。</div>';return;}
@@ -709,6 +840,7 @@ function renderTasks(){
     const done=localStorage.getItem(key)==="1";
     if(done){localStorage.removeItem(key);btn.classList.remove("completed");btn.textContent="已完成";}
     else{localStorage.setItem(key,"1");btn.classList.add("completed");btn.textContent="✓ 已完成";}
+    renderUrgentTask();
   });
   box.querySelectorAll("[data-edit-task]").forEach(btn=>btn.onclick=()=>openTaskModal(classTasks.find(t=>t.id===btn.dataset.editTask)));
   box.querySelectorAll("[data-delete-task]").forEach(btn=>btn.onclick=()=>deleteTaskById(btn.dataset.deleteTask));
@@ -720,6 +852,7 @@ function startTasks(){
   unsubscribeTasks=onSnapshot(q,snap=>{
     classTasks=snap.docs.map(d=>({id:d.id,...d.data()}));
     renderTasks();
+    renderUrgentTask();
   },error=>{
     console.error("Task listener failed:",error);
     document.querySelector("#taskList").innerHTML='<div class="task-empty">目前無法載入待辦事項。</div>';
@@ -1153,6 +1286,7 @@ async function initAuth(){
         updateAnnouncementControls(null);
         document.querySelector("#memberAdminBtn").style.display="none";
         document.querySelector("#addTaskBtn").style.display="none";
+        document.querySelector("#editTimetableBtn").style.display="none";
         document.querySelector("#mailboxBottomBtn").style.display="none";
         if(unsubscribeTasks){unsubscribeTasks();unsubscribeTasks=null;}
         if(unsubscribeMailbox){unsubscribeMailbox();unsubscribeMailbox=null;}
@@ -1237,10 +1371,12 @@ async function initAuth(){
         updateAnnouncementControls(member);
         document.querySelector("#memberAdminBtn").style.display=member.role==="advisor"?"inline-block":"none";
         document.querySelector("#addTaskBtn").style.display=(member.role==="advisor"||member.role==="officer")?"inline-block":"none";
+        document.querySelector("#editTimetableBtn").style.display=member.role==="advisor"?"inline-block":"none";
         document.querySelector("#mailboxBottomBtn").style.display="flex";
         startAnnouncements();
         startTasks();
         startMailbox();
+        startTimetable();
 
         await loadCalendarEvents(calendarAccessToken);
       }catch(error){
