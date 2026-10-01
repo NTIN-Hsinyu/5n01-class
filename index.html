@@ -333,6 +333,14 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
  .timetable-edit-modal{width:100%;max-height:92vh;border-radius:22px 22px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom))}
  #timetableBackdrop{align-items:flex-end;padding:0}
 }
+
+/* v8.9 班級座位表 */
+.seat-tool-modal{width:min(1320px,98vw);height:94vh;max-height:94vh;padding:16px;display:flex;flex-direction:column}
+#seatToolFrame{width:100%;flex:1;border:0;border-radius:12px;background:#f4f6f8}
+@media(max-width:760px){
+ .seat-tool-modal{width:100%;height:96vh;max-height:96vh;border-radius:22px 22px 0 0;padding:12px}
+ #seatToolBackdrop{align-items:flex-end;padding:0}
+}
 </style>
 </head>
 <body><div class="access-gate" id="accessGate"><div class="gate-card"><div class="gate-mark">🏫</div><h2>五護101班｜班級公告欄</h2><p>請使用國立臺南護理專科學校 Google 帳號登入，以查看班級公告與行程。</p><button class="auth-btn primary" id="googleLoginBtn">使用 NTIN Google 帳號登入</button><div class="gate-loading" id="gateLoading">正在確認登入狀態…</div><div class="gate-error" id="gateError"></div></div></div>
@@ -365,13 +373,152 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 <span style="font-size:20px">›</span></a>
 <div class="note">目前先保留班規入口；之後可連到班規網頁、PDF、Google 文件，或直接做成 PWA 內頁。</div>
 </section>
-<section id="links" style="margin-top:22px"><h2>🔗 常用連結</h2><div class="links"><a class="link" href="#">Google Classroom</a><a class="link" href="#">Google Calendar</a><a class="link" href="#">Moodle</a><a class="link" href="#">學校首頁</a><a class="link" href="#">請假系統</a><a class="link" href="#">常用表單</a></div></section></div></div>
+<section id="links" style="margin-top:22px"><h2>🔗 常用連結</h2><div class="links"><a class="link" href="#" id="seatToolBtn" style="display:none">班級座位表</a><a class="link" href="#">Google Classroom</a><a class="link" href="#">Google Calendar</a><a class="link" href="#">Moodle</a><a class="link" href="#">學校首頁</a><a class="link" href="#">請假系統</a><a class="link" href="#">常用表單</a></div></section></div></div>
 </main>
 
 <div class="bottom"><a href="#home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.8 12 3l9 7.8"/><path d="M5.5 9.5V21h13V9.5"/><path d="M9.5 21v-6h5v6"/></svg><span>首頁</span></a><a href="#notices"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg><span>公告</span></a><a href="#tasks"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.7 2.7L16.5 9"/></svg><span>提醒</span></a><a href="#timetable"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg><span>課表</span></a><a href="#" id="mailboxBottomBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg><span>信箱</span></a></div>
 
 
 
+
+<div class="modal-backdrop" id="seatToolBackdrop" role="dialog" aria-modal="true">
+<div class="modal seat-tool-modal">
+<div class="member-admin-top"><div><div class="meta">導師工具</div><h3>班級座位表</h3></div><button class="notice-close" id="seatToolClose">×</button></div>
+<iframe id="seatToolFrame" title="班級座位表" srcdoc="&lt;!doctype html&gt;
+&lt;html lang=&quot;zh-Hant&quot;&gt;
+&lt;head&gt;
+  &lt;meta charset=&quot;utf-8&quot;&gt;
+  &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1&quot;&gt;
+  &lt;title&gt;班級座位表&lt;/title&gt;
+  &lt;script src=&quot;https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js&quot;&gt;&lt;/script&gt;
+  &lt;style&gt;
+    :root{--ink:#20242b;--muted:#6d7685;--line:#d8dee7;--blue:#446b99;--pale:#f2f6fb;--danger:#b33a3a}
+    *{box-sizing:border-box} body{margin:0;background:#f4f6f8;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,&quot;Segoe UI&quot;,&quot;Noto Sans TC&quot;,sans-serif}
+    main{max-width:1260px;margin:28px auto;padding:0 20px 50px} h1{font-size:30px;margin:0 0 18px}
+    .layout{display:grid;grid-template-columns:minmax(650px,1fr) 350px;gap:20px;align-items:start}.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px;box-shadow:0 2px 8px rgba(20,30,45,.05)}
+    .toolbar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px} button,.file-label{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:9px;padding:10px 14px;font:inherit;cursor:pointer}button:hover,.file-label:hover{background:var(--pale)}button.primary{background:var(--blue);color:white;border-color:var(--blue)}
+    .room{position:relative;padding:108px 76px 0;min-height:795px}.seat-grid{display:grid;grid-template-columns:repeat(7,minmax(68px,1fr));gap:12px 11px;direction:ltr}.seat{height:64px;border:1.5px solid #9aa5b3;border-radius:8px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.25;user-select:none}.seat.occupied{cursor:grab;touch-action:none}.seat.occupied:active{cursor:grabbing}.seat.dragging{opacity:.35}.seat.drop-target{outline:3px solid var(--blue);outline-offset:2px}.seat.empty{cursor:pointer;color:#9aa5b3}.seat.empty:hover{border-color:var(--blue);background:var(--pale)}.seat.blocked{font-size:33px;color:var(--danger);border-color:#d9a0a0;background:#fff7f7;cursor:pointer}.seat-no{font-size:12px;color:var(--muted)}.seat-name{font-size:16px;font-weight:650;margin-top:3px}
+    .door{position:absolute;left:0;width:58px;height:88px;border:2px solid #7a8491;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:700;line-height:1.25}.back-door{top:0}.front-door{bottom:4px}
+    .front-area{position:relative;height:105px;margin-top:18px}.board{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:68%;height:62px;border:3px solid #3c434c;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;background:#fbfbfb}.podium{position:absolute;right:0;bottom:0;width:78px;height:78px;border:3px solid #3c434c;border-radius:5px;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:700;background:#fbfbfb}
+    h2{font-size:23px;margin:0 0 6px}.summary{color:var(--muted);margin-bottom:16px}.import{display:block;text-align:center;margin-bottom:10px}.import input{display:none}.student-list{margin-top:14px;max-height:600px;overflow:auto;border-top:1px solid var(--line)}.student-row{display:grid;grid-template-columns:65px 1fr 36px;gap:8px;padding:8px 0;border-bottom:1px solid #edf0f4}.student-row input{width:100%;border:1px solid var(--line);border-radius:6px;padding:7px;font:inherit}.delete{padding:5px;color:var(--danger)}.note{font-size:14px;line-height:1.55;color:#526273;background:var(--pale);padding:12px;border-radius:8px;margin-top:14px}
+    @media(max-width:900px){main{padding:0 10px 30px}.layout{grid-template-columns:1fr}.room{padding-left:62px;padding-right:62px;overflow-x:auto}.seat-grid{min-width:610px}.front-area{min-width:610px}.card{padding:16px}}
+    @media print{body{background:#fff}.toolbar,.side{display:none}.layout{display:block}.card{box-shadow:none;border:0}.room{padding-top:15px}.seat{break-inside:avoid}}
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;main&gt;
+  &lt;h1&gt;班級座位表&lt;/h1&gt;
+  &lt;div class=&quot;layout&quot;&gt;
+    &lt;section class=&quot;card&quot;&gt;
+      &lt;div class=&quot;toolbar&quot;&gt;
+        &lt;button class=&quot;primary&quot; id=&quot;randomBtn&quot;&gt;一鍵隨機排座位&lt;/button&gt;
+        &lt;button id=&quot;numberBtn&quot;&gt;依座號排列&lt;/button&gt;
+        &lt;button id=&quot;clearBtn&quot;&gt;清空座位&lt;/button&gt;
+        &lt;button id=&quot;previewBtn&quot;&gt;預覽匯出&lt;/button&gt;
+        &lt;button id=&quot;wordBtn&quot;&gt;輸出 Word&lt;/button&gt;&lt;button class=&quot;primary&quot; id=&quot;saveVersionBtn&quot;&gt;儲存版本&lt;/button&gt;&lt;button id=&quot;historyBtn&quot;&gt;版本紀錄&lt;/button&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;room&quot; id=&quot;room&quot;&gt;
+        &lt;div class=&quot;door back-door&quot;&gt;後門&lt;/div&gt;
+        &lt;div class=&quot;seat-grid&quot; id=&quot;seatGrid&quot;&gt;&lt;/div&gt;
+        &lt;div class=&quot;front-area&quot;&gt;
+          &lt;div class=&quot;board&quot;&gt;黑板&lt;/div&gt;
+          &lt;div class=&quot;podium&quot;&gt;電子&lt;br&gt;講桌&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;door front-door&quot;&gt;前門&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/section&gt;
+    &lt;aside class=&quot;card side&quot;&gt;
+      &lt;h2&gt;學生名單&lt;/h2&gt;&lt;div class=&quot;summary&quot; id=&quot;summary&quot;&gt;&lt;/div&gt;
+      &lt;label class=&quot;file-label import&quot;&gt;匯入學生名單&lt;input id=&quot;fileInput&quot; type=&quot;file&quot; accept=&quot;.xlsx,.xls,.csv,.txt&quot;&gt;&lt;/label&gt;
+      &lt;div class=&quot;toolbar&quot;&gt;&lt;button id=&quot;addBtn&quot;&gt;新增學生&lt;/button&gt;&lt;button id=&quot;resetBtn&quot;&gt;重設班級名單&lt;/button&gt;&lt;/div&gt;
+      &lt;div class=&quot;note&quot;&gt;每列固定 7 個座位，共 8 排。「依座號排列」會從左下方第一個可用座位沿直排向上，再移至右側下一排；只會略過你標示的「×」座位。隨機排列也只會排除「×」座位，其餘位置都會參與隨機。排好後可拖曳學生，互換座位或移至一般空位。&lt;/div&gt;
+      &lt;div class=&quot;student-list&quot; id=&quot;studentList&quot;&gt;&lt;/div&gt;
+&lt;div id=&quot;historyPanel&quot; style=&quot;display:none;margin-top:16px;border-top:1px solid var(--line);padding-top:14px&quot;&gt;
+&lt;h2 style=&quot;font-size:19px&quot;&gt;版本紀錄&lt;/h2&gt;
+&lt;div id=&quot;historyList&quot; class=&quot;note&quot;&gt;正在載入…&lt;/div&gt;
+&lt;/div&gt;
+    &lt;/aside&gt;
+  &lt;/div&gt;
+&lt;/main&gt;
+&lt;script&gt;
+const originalStudents = [
+[&#x27;01&#x27;,&#x27;王品翔&#x27;],[&#x27;02&#x27;,&#x27;王祐萱&#x27;],[&#x27;03&#x27;,&#x27;王梓蓉&#x27;],[&#x27;04&#x27;,&#x27;王楷媞&#x27;],[&#x27;05&#x27;,&#x27;朱韻萍&#x27;],[&#x27;06&#x27;,&#x27;吳佳晏&#x27;],[&#x27;07&#x27;,&#x27;吳佳蓁&#x27;],[&#x27;08&#x27;,&#x27;吳承澤&#x27;],[&#x27;09&#x27;,&#x27;吳姵賢&#x27;],[&#x27;10&#x27;,&#x27;宋采妍&#x27;],[&#x27;11&#x27;,&#x27;李函霏&#x27;],[&#x27;12&#x27;,&#x27;李宜蓉&#x27;],[&#x27;13&#x27;,&#x27;李承宥&#x27;],[&#x27;14&#x27;,&#x27;李昕瑜&#x27;],[&#x27;15&#x27;,&#x27;杜怡璇&#x27;],[&#x27;16&#x27;,&#x27;周莘茹&#x27;],[&#x27;17&#x27;,&#x27;林沛岑&#x27;],[&#x27;18&#x27;,&#x27;林昕萮&#x27;],[&#x27;19&#x27;,&#x27;林品姍&#x27;],[&#x27;20&#x27;,&#x27;林韋圻&#x27;],[&#x27;21&#x27;,&#x27;林歆愉&#x27;],[&#x27;22&#x27;,&#x27;林嘉榮&#x27;],[&#x27;23&#x27;,&#x27;柯羽柔&#x27;],[&#x27;24&#x27;,&#x27;洪心愉&#x27;],[&#x27;25&#x27;,&#x27;徐瑄妤&#x27;],[&#x27;26&#x27;,&#x27;張絜宥&#x27;],[&#x27;27&#x27;,&#x27;莊品言&#x27;],[&#x27;28&#x27;,&#x27;許月瓅&#x27;],[&#x27;29&#x27;,&#x27;陳姿彤&#x27;],[&#x27;30&#x27;,&#x27;陳宥妘&#x27;],[&#x27;31&#x27;,&#x27;陳思瑜&#x27;],[&#x27;32&#x27;,&#x27;陳渝璇&#x27;],[&#x27;33&#x27;,&#x27;湯鈞傑&#x27;],[&#x27;34&#x27;,&#x27;黃子薰&#x27;],[&#x27;35&#x27;,&#x27;黃云柔&#x27;],[&#x27;36&#x27;,&#x27;黃東詠&#x27;],[&#x27;37&#x27;,&#x27;黃昱勛&#x27;],[&#x27;38&#x27;,&#x27;黃晨茵&#x27;],[&#x27;39&#x27;,&#x27;黃意恬&#x27;],[&#x27;40&#x27;,&#x27;黃詩涵&#x27;],[&#x27;41&#x27;,&#x27;楊晏寧&#x27;],[&#x27;42&#x27;,&#x27;趙甯浠&#x27;],[&#x27;43&#x27;,&#x27;劉名芯&#x27;],[&#x27;44&#x27;,&#x27;劉語潔&#x27;],[&#x27;45&#x27;,&#x27;蔡孟晴&#x27;],[&#x27;46&#x27;,&#x27;蔡捷渝&#x27;],[&#x27;47&#x27;,&#x27;鄧芮昕&#x27;],[&#x27;48&#x27;,&#x27;盧奕丞&#x27;],[&#x27;49&#x27;,&#x27;盧席芮&#x27;],[&#x27;50&#x27;,&#x27;賴姿辰&#x27;],[&#x27;51&#x27;,&#x27;戴恩杏&#x27;],[&#x27;52&#x27;,&#x27;謝欣貝&#x27;],[&#x27;53&#x27;,&#x27;謝裕真&#x27;],[&#x27;54&#x27;,&#x27;鐘語晴&#x27;]
+].map(([number,name])=&gt;({number,name}));
+let students=structuredClone(originalStudents), seats=Array(56).fill(null), blocked=new Set();
+const grid=document.getElementById(&#x27;seatGrid&#x27;), list=document.getElementById(&#x27;studentList&#x27;), summary=document.getElementById(&#x27;summary&#x27;);
+function esc(v){return String(v??&#x27;&#x27;).replace(/[&amp;&lt;&gt;&quot;&#x27;]/g,c=&gt;({&#x27;&amp;&#x27;:&#x27;&amp;amp;&#x27;,&#x27;&lt;&#x27;:&#x27;&amp;lt;&#x27;,&#x27;&gt;&#x27;:&#x27;&amp;gt;&#x27;,&#x27;&quot;&#x27;:&#x27;&amp;quot;&#x27;,&quot;&#x27;&quot;:&#x27;&amp;#39;&#x27;}[c]));}
+function renderSeats(){grid.innerHTML=&#x27;&#x27;; for(let visualRow=7;visualRow&gt;=0;visualRow--){for(let col=0;col&lt;7;col++){const i=visualRow*7+col,s=seats[i],el=document.createElement(&#x27;div&#x27;);el.className=&#x27;seat &#x27;+(blocked.has(i)?&#x27;blocked&#x27;:s?&#x27;occupied&#x27;:&#x27;empty&#x27;);el.dataset.index=i;if(blocked.has(i)){el.textContent=&#x27;×&#x27;;el.title=&#x27;點一下恢復此座位&#x27;;}else if(s){el.innerHTML=&#x27;&lt;div class=&quot;seat-no&quot;&gt;&#x27;+esc(s.number)+&#x27; 號&lt;/div&gt;&lt;div class=&quot;seat-name&quot;&gt;&#x27;+esc(s.name)+&#x27;&lt;/div&gt;&#x27;;}else{el.innerHTML=&#x27;&lt;div class=&quot;seat-no&quot;&gt;空位&lt;/div&gt;&#x27;;el.title=&#x27;點一下將此座位設為不排人&#x27;;}grid.appendChild(el);}}}
+function renderList(){list.innerHTML=&#x27;&#x27;;students.forEach((s,i)=&gt;{const row=document.createElement(&#x27;div&#x27;);row.className=&#x27;student-row&#x27;;row.innerHTML=&#x27;&lt;input aria-label=&quot;座號&quot; value=&quot;&#x27;+esc(s.number)+&#x27;&quot;&gt;&lt;input aria-label=&quot;姓名&quot; value=&quot;&#x27;+esc(s.name)+&#x27;&quot;&gt;&lt;button class=&quot;delete&quot; title=&quot;刪除&quot;&gt;×&lt;/button&gt;&#x27;;const inputs=row.querySelectorAll(&#x27;input&#x27;);inputs[0].oninput=e=&gt;{s.number=e.target.value;renderSeats()};inputs[1].oninput=e=&gt;{s.name=e.target.value;renderSeats()};row.querySelector(&#x27;button&#x27;).onclick=()=&gt;{const old=students[i];students.splice(i,1);seats=seats.map(x=&gt;x===old?null:x);renderAll()};list.appendChild(row)});summary.textContent=&#x27;目前 &#x27;+students.length+&#x27; 位學生｜可用座位 &#x27;+(56-blocked.size)+&#x27; 席&#x27;;}
+function renderAll(){renderSeats();renderList();}
+function assign(arr,slotOrder){const order=slotOrder||[...Array(56).keys()];const active=order.filter(i=&gt;!blocked.has(i));seats=Array(56).fill(null);arr.slice(0,active.length).forEach((s,k)=&gt;seats[active[k]]=s);
+function seatSnapshot(){
+  return {
+    students: students.map(x=&gt;({number:x.number,name:x.name})),
+    seats: seats.map(x=&gt;x?{number:x.number,name:x.name}:null),
+    blocked:[...blocked]
+  };
+}
+function applySeatSnapshot(data){
+  if(!data)return;
+  students=Array.isArray(data.students)?data.students.map(x=&gt;({number:String(x.number??&quot;&quot;),name:String(x.name??&quot;&quot;)})):structuredClone(originalStudents);
+  const byKey=new Map(students.map(x=&gt;[`${x.number}|||${x.name}`,x]));
+  seats=Array(56).fill(null);
+  if(Array.isArray(data.seats)) data.seats.slice(0,56).forEach((x,i)=&gt;{if(x)seats[i]=byKey.get(`${x.number}|||${x.name}`)||{number:String(x.number??&quot;&quot;),name:String(x.name??&quot;&quot;)};});
+  blocked=new Set(Array.isArray(data.blocked)?data.blocked:[]);
+  renderAll();
+}
+document.getElementById(&#x27;saveVersionBtn&#x27;).onclick=()=&gt;{
+  const label=prompt(&#x27;請輸入這次座位表版本名稱：&#x27;, new Date().toLocaleDateString(&#x27;zh-TW&#x27;)+&#x27; 座位表&#x27;);
+  if(!label)return;
+  parent.postMessage({type:&#x27;seat-save-version&#x27;,label,snapshot:seatSnapshot()},&#x27;*&#x27;);
+};
+document.getElementById(&#x27;historyBtn&#x27;).onclick=()=&gt;{
+  const p=document.getElementById(&#x27;historyPanel&#x27;);
+  p.style.display=p.style.display===&#x27;none&#x27;?&#x27;block&#x27;:&#x27;none&#x27;;
+  if(p.style.display!==&#x27;none&#x27;) parent.postMessage({type:&#x27;seat-request-history&#x27;},&#x27;*&#x27;);
+};
+window.addEventListener(&#x27;message&#x27;,e=&gt;{
+  const m=e.data||{};
+  if(m.type===&#x27;seat-load-current&#x27;) applySeatSnapshot(m.snapshot);
+  if(m.type===&#x27;seat-history&#x27;){
+    const box=document.getElementById(&#x27;historyList&#x27;);
+    const items=m.items||[];
+    if(!items.length){box.innerHTML=&#x27;目前還沒有已儲存的版本。&#x27;;return;}
+    box.innerHTML=items.map(x=&gt;`&lt;div style=&quot;padding:10px 0;border-bottom:1px solid #dde3ea&quot;&gt;&lt;b&gt;${esc(x.label||&#x27;未命名版本&#x27;)}&lt;/b&gt;&lt;div style=&quot;font-size:12px;color:#6d7685;margin:4px 0&quot;&gt;${esc(x.timeText||&#x27;&#x27;)}&lt;/div&gt;&lt;button data-load=&quot;${esc(x.id)}&quot;&gt;載入此版本&lt;/button&gt;&lt;/div&gt;`).join(&#x27;&#x27;);
+    box.querySelectorAll(&#x27;[data-load]&#x27;).forEach(b=&gt;b.onclick=()=&gt;parent.postMessage({type:&#x27;seat-load-version&#x27;,id:b.dataset.load},&#x27;*&#x27;));
+  }
+  if(m.type===&#x27;seat-version-loaded&#x27;) applySeatSnapshot(m.snapshot);
+  if(m.type===&#x27;seat-saved&#x27;) alert(&#x27;座位表版本已儲存。&#x27;);
+});
+parent.postMessage({type:&#x27;seat-ready&#x27;},&#x27;*&#x27;);
+renderAll();}
+function numberOrderSlots(){const order=[];for(let col=0;col&lt;7;col++){for(let row=0;row&lt;8;row++)order.push(row*7+col)}return order;}
+grid.addEventListener(&#x27;click&#x27;,e=&gt;{const el=e.target.closest(&#x27;.seat&#x27;);if(!el)return;const i=Number(el.dataset.index);if(seats[i])return;if(blocked.has(i))blocked.delete(i);else blocked.add(i);renderAll();});
+function shuffle(a){for(let i=a.length-1;i&gt;0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a;}
+document.getElementById(&#x27;randomBtn&#x27;).onclick=()=&gt;assign(shuffle([...students]),shuffle([...Array(56).keys()]));
+document.getElementById(&#x27;numberBtn&#x27;).onclick=()=&gt;assign([...students].sort((a,b)=&gt;String(a.number).localeCompare(String(b.number),&#x27;zh-Hant&#x27;,{numeric:true})),numberOrderSlots());
+document.getElementById(&#x27;clearBtn&#x27;).onclick=()=&gt;{seats=Array(56).fill(null);renderAll()};
+document.getElementById(&#x27;addBtn&#x27;).onclick=()=&gt;{students.push({number:String(students.length+1).padStart(2,&#x27;0&#x27;),name:&#x27;&#x27;});renderAll();list.scrollTop=list.scrollHeight};
+document.getElementById(&#x27;resetBtn&#x27;).onclick=()=&gt;{if(confirm(&#x27;確定要恢復原始 54 人名單嗎？&#x27;)){students=structuredClone(originalStudents);blocked.clear();seats=Array(56).fill(null);renderAll()}};
+function normalizeHeader(v){return String(v??&#x27;&#x27;).trim().toLowerCase().replace(/\s+/g,&#x27;&#x27;)}
+function rowsToStudents(rows){const clean=rows.filter(r=&gt;Array.isArray(r)&amp;&amp;r.some(v=&gt;String(v??&#x27;&#x27;).trim()));if(!clean.length)return[];const h=clean[0].map(normalizeHeader),nums=[&#x27;座號&#x27;,&#x27;座号&#x27;,&#x27;學號&#x27;,&#x27;学号&#x27;,&#x27;number&#x27;,&#x27;no&#x27;,&#x27;no.&#x27;,&#x27;seatno&#x27;],names=[&#x27;姓名&#x27;,&#x27;學生姓名&#x27;,&#x27;学生姓名&#x27;,&#x27;中文姓名&#x27;,&#x27;name&#x27;,&#x27;studentname&#x27;];let ni=h.findIndex(x=&gt;nums.includes(x)),mi=h.findIndex(x=&gt;names.includes(x)),start=0;if(ni&gt;=0||mi&gt;=0){start=1;if(ni&lt;0)ni=0;if(mi&lt;0)mi=ni===0?1:0}else{ni=0;mi=1}return clean.slice(start).map((r,i)=&gt;{let n=String(r[ni]??&#x27;&#x27;).trim();if(/^\d{3,}$/.test(n))n=n.slice(-2);return{number:n||String(i+1).padStart(2,&#x27;0&#x27;),name:String(r[mi]??&#x27;&#x27;).trim()}}).filter(s=&gt;s.number||s.name)}
+document.getElementById(&#x27;fileInput&#x27;).onchange=async e=&gt;{const f=e.target.files[0];if(!f)return;try{let rows;if(/\.xlsx?$/i.test(f.name)){if(!window.XLSX)throw new Error(&#x27;Excel 讀取元件尚未載入&#x27;);const wb=XLSX.read(await f.arrayBuffer(),{type:&#x27;array&#x27;});rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:&#x27;&#x27;})}else{const text=await f.text();rows=text.replace(/^\uFEFF/,&#x27;&#x27;).split(/\r?\n/).filter(Boolean).map(line=&gt;line.split(text.includes(&#x27;\t&#x27;)?&#x27;\t&#x27;:&#x27;,&#x27;))}const parsed=rowsToStudents(rows);if(!parsed.length)throw new Error(&#x27;找不到學生資料&#x27;);students=parsed;blocked.clear();assign(students)}catch(err){alert(&#x27;匯入失敗：&#x27;+err.message)}finally{e.target.value=&#x27;&#x27;}};
+let dragState=null,dropEl=null;
+grid.addEventListener(&#x27;pointerdown&#x27;,e=&gt;{const el=e.target.closest(&#x27;.seat.occupied&#x27;);if(!el)return;dragState={from:Number(el.dataset.index),el,startX:e.clientX,startY:e.clientY,moving:false,pointerId:e.pointerId};el.setPointerCapture(e.pointerId)});
+grid.addEventListener(&#x27;pointermove&#x27;,e=&gt;{if(!dragState||dragState.pointerId!==e.pointerId)return;if(!dragState.moving&amp;&amp;Math.hypot(e.clientX-dragState.startX,e.clientY-dragState.startY)&lt;7)return;dragState.moving=true;e.preventDefault();dragState.el.classList.add(&#x27;dragging&#x27;);const hit=document.elementFromPoint(e.clientX,e.clientY)?.closest(&#x27;.seat&#x27;);if(dropEl&amp;&amp;dropEl!==hit)dropEl.classList.remove(&#x27;drop-target&#x27;);dropEl=hit&amp;&amp;!hit.classList.contains(&#x27;blocked&#x27;)?hit:null;if(dropEl)dropEl.classList.add(&#x27;drop-target&#x27;)});
+function finishDrag(e){if(!dragState||dragState.pointerId!==e.pointerId)return;const state=dragState,target=dropEl;state.el.classList.remove(&#x27;dragging&#x27;);if(target)target.classList.remove(&#x27;drop-target&#x27;);dragState=null;dropEl=null;if(state.moving&amp;&amp;target){const to=Number(target.dataset.index);[seats[state.from],seats[to]]=[seats[to],seats[state.from]];renderAll()}}
+grid.addEventListener(&#x27;pointerup&#x27;,finishDrag);grid.addEventListener(&#x27;pointercancel&#x27;,finishDrag);
+function wordSeatRows(){let html=&#x27;&#x27;;for(let r=7;r&gt;=0;r--){html+=&#x27;&lt;tr&gt;&#x27;;for(let c=0;c&lt;7;c++){const i=r*7+c,s=seats[i];html+=&#x27;&lt;td class=&quot;seat&quot;&gt;&#x27;+(blocked.has(i)?&#x27;&lt;b class=&quot;x&quot;&gt;×&lt;/b&gt;&#x27;:s?&#x27;&lt;small&gt;&#x27;+esc(s.number)+&#x27; 號&lt;/small&gt;&lt;br&gt;&lt;b&gt;&#x27;+esc(s.name)+&#x27;&lt;/b&gt;&#x27;:&#x27;&lt;small&gt;空位&lt;/small&gt;&#x27;)+&#x27;&lt;/td&gt;&#x27;}html+=&#x27;&lt;/tr&gt;&#x27;}return html}
+function buildExportHtml(preview=false){const style=&#x27;@page{size:A4 portrait;margin:14mm}*{box-sizing:border-box}body{margin:0;font-family:Microsoft JhengHei,Noto Sans TC,sans-serif;color:#20242b;text-align:center;background:&#x27;+(preview?&#x27;#eef1f5&#x27;:&#x27;#fff&#x27;)+&#x27;}.previewbar{position:sticky;top:0;padding:10px;background:#fff;border-bottom:1px solid #ddd;text-align:center}.previewbar button{font:inherit;padding:7px 14px;margin:0 4px}.paper{width:760px;margin:&#x27;+(preview?&#x27;24px auto&#x27;:&#x27;0 auto&#x27;)+&#x27;;padding:24px;background:#fff}.paper h1{font-size:22pt;margin:0 0 14px}.room{width:720px;margin:auto}.rear{width:720px;border-collapse:collapse;margin-bottom:10px;table-layout:fixed}.backdoor{width:64px;height:64px;border:2px solid #555;text-align:center;vertical-align:middle;font-weight:bold}.rearspace{border:0}.seats{width:580px;margin-left:70px;border-spacing:7px}.seat{width:76px;height:49px;border:1px solid #7d8794;text-align:center}.x{font-size:24pt;color:#b33a3a}.front{width:720px;margin-top:15px;border-collapse:collapse}.door,.podium{width:90px;height:58px;border:2px solid #444;text-align:center;vertical-align:middle;font-weight:bold}.board{height:58px;border:2px solid #333;text-align:center;vertical-align:middle;font-size:18pt;font-weight:bold}small{color:#666}@media print{body{background:#fff}.previewbar{display:none}.paper{margin:0;padding:0}}&#x27;;const bar=preview?&#x27;&lt;div class=&quot;previewbar&quot;&gt;匯出預覽　&lt;button onclick=&quot;window.opener&amp;&amp;window.opener.downloadWord()&quot;&gt;輸出 Word&lt;/button&gt;&lt;button onclick=&quot;window.print()&quot;&gt;列印&lt;/button&gt;&lt;button onclick=&quot;window.close()&quot;&gt;關閉&lt;/button&gt;&lt;/div&gt;&#x27;:&#x27;&#x27;;return &#x27;&lt;!doctype html&gt;&lt;html lang=&quot;zh-Hant&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;title&gt;班級座位表－匯出預覽&lt;/title&gt;&lt;style&gt;&#x27;+style+&#x27;&lt;/style&gt;&lt;/head&gt;&lt;body&gt;&#x27;+bar+&#x27;&lt;div class=&quot;paper&quot;&gt;&lt;h1&gt;班級座位表&lt;/h1&gt;&lt;div class=&quot;room&quot;&gt;&lt;table class=&quot;rear&quot; width=&quot;720&quot;&gt;&lt;col width=&quot;64&quot;&gt;&lt;col width=&quot;656&quot;&gt;&lt;tr&gt;&lt;td class=&quot;backdoor&quot; width=&quot;64&quot; height=&quot;64&quot;&gt;後門&lt;/td&gt;&lt;td class=&quot;rearspace&quot; width=&quot;656&quot;&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;table class=&quot;seats&quot;&gt;&#x27;+wordSeatRows()+&#x27;&lt;/table&gt;&lt;table class=&quot;front&quot;&gt;&lt;tr&gt;&lt;td class=&quot;door&quot;&gt;前門&lt;/td&gt;&lt;td class=&quot;board&quot;&gt;黑板&lt;/td&gt;&lt;td class=&quot;podium&quot;&gt;電子講桌&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/div&gt;&lt;/div&gt;&lt;/body&gt;&lt;/html&gt;&#x27;}
+document.getElementById(&#x27;previewBtn&#x27;).onclick=()=&gt;{const w=window.open(&#x27;&#x27;,&#x27;_blank&#x27;);if(!w){alert(&#x27;瀏覽器封鎖了預覽視窗，請允許此網頁開啟彈出式視窗。&#x27;);return}w.document.open();w.document.write(buildExportHtml(true));w.document.close()};
+window.downloadWord=()=&gt;{const content=buildExportHtml(false),blob=new Blob([&#x27;\ufeff&#x27;,content],{type:&#x27;application/msword&#x27;}),url=URL.createObjectURL(blob),a=document.createElement(&#x27;a&#x27;);a.href=url;a.download=&#x27;班級座位表.doc&#x27;;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url)};
+document.getElementById(&#x27;wordBtn&#x27;).onclick=window.downloadWord;
+renderAll();
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+"></iframe>
+</div></div>
 
 <div class="modal-backdrop" id="timetableBackdrop" role="dialog" aria-modal="true">
 <div class="modal timetable-edit-modal">
@@ -539,6 +686,7 @@ let unsubscribeTasks=null;
 let editingTaskId=null;
 let mailboxMessages=[]; let mailboxReplies=[]; let mailboxView="compose"; let selectedMailboxId=null; let unsubscribeMailbox=null; let unsubscribeMailboxReplies=null;
 let timetableData={}; let unsubscribeTimetable=null;
+let seatVersions=[]; let currentSeatSnapshot=null;
 
 const gate=document.querySelector("#accessGate");
 const gateLoading=document.querySelector("#gateLoading");
@@ -604,6 +752,63 @@ document.querySelector("#timetableSave").onclick=async()=>{
   }catch(e){console.error(e);alert("課表儲存失敗，請確認 Firestore Rules 已加入 timetable 權限。")}
   finally{btn.disabled=false;btn.textContent="儲存課表"}
 };
+
+
+function openSeatTool(){
+  if(currentMember?.role!=="advisor")return;
+  document.querySelector("#seatToolBackdrop").classList.add("show");
+  document.body.style.overflow="hidden";
+}
+function closeSeatTool(){
+  document.querySelector("#seatToolBackdrop").classList.remove("show");
+  document.body.style.overflow="";
+}
+document.querySelector("#seatToolBtn").onclick=e=>{e.preventDefault();openSeatTool()};
+document.querySelector("#seatToolClose").onclick=closeSeatTool;
+document.querySelector("#seatToolBackdrop").onclick=e=>{if(e.target===document.querySelector("#seatToolBackdrop"))closeSeatTool()};
+
+async function getSeatHistory(){
+  const snap=await getDocs(query(collection(db,"seatingVersions"),orderBy("createdAt","desc")));
+  seatVersions=snap.docs.map(d=>({id:d.id,...d.data()}));
+  return seatVersions;
+}
+async function sendSeatHistory(){
+  const items=await getSeatHistory();
+  document.querySelector("#seatToolFrame")?.contentWindow?.postMessage({type:"seat-history",items:items.map(x=>({
+    id:x.id,label:x.label||"未命名版本",
+    timeText:x.createdAt?.toDate?x.createdAt.toDate().toLocaleString("zh-TW"):""
+  }))},"*");
+}
+window.addEventListener("message",async e=>{
+  const m=e.data||{};
+  if(!String(m.type||"").startsWith("seat-"))return;
+  if(currentMember?.role!=="advisor")return;
+  try{
+    if(m.type==="seat-ready"){
+      const cur=await getDoc(doc(db,"seating","current"));
+      currentSeatSnapshot=cur.exists()?cur.data().snapshot:null;
+      e.source?.postMessage({type:"seat-load-current",snapshot:currentSeatSnapshot},"*");
+    }
+    if(m.type==="seat-save-version"){
+      const payload={label:String(m.label||"未命名版本").slice(0,80),snapshot:m.snapshot,createdAt:serverTimestamp(),authorUid:auth.currentUser.uid,authorName:currentMember.name||auth.currentUser.displayName||""};
+      const ref=await addDoc(collection(db,"seatingVersions"),payload);
+      await setDoc(doc(db,"seating","current"),{snapshot:m.snapshot,versionId:ref.id,label:payload.label,updatedAt:serverTimestamp(),updatedBy:auth.currentUser.uid},{merge:true});
+      currentSeatSnapshot=m.snapshot;
+      e.source?.postMessage({type:"seat-saved"},"*");
+      await sendSeatHistory();
+    }
+    if(m.type==="seat-request-history") await sendSeatHistory();
+    if(m.type==="seat-load-version"){
+      const d=await getDoc(doc(db,"seatingVersions",m.id));
+      if(d.exists()){
+        const snap=d.data().snapshot;
+        await setDoc(doc(db,"seating","current"),{snapshot:snap,versionId:d.id,label:d.data().label||"",updatedAt:serverTimestamp(),updatedBy:auth.currentUser.uid},{merge:true});
+        currentSeatSnapshot=snap;
+        e.source?.postMessage({type:"seat-version-loaded",snapshot:snap},"*");
+      }
+    }
+  }catch(err){console.error("Seat tool error",err);alert("座位表操作失敗，請確認 Firestore Rules 已加入 seating 與 seatingVersions 權限。")}
+});
 
 function showError(message,error=null){
   console.error("Firebase Auth error:",error||message);
@@ -1372,6 +1577,7 @@ async function initAuth(){
         document.querySelector("#memberAdminBtn").style.display=member.role==="advisor"?"inline-block":"none";
         document.querySelector("#addTaskBtn").style.display=(member.role==="advisor"||member.role==="officer")?"inline-block":"none";
         document.querySelector("#editTimetableBtn").style.display=member.role==="advisor"?"inline-block":"none";
+        document.querySelector("#seatToolBtn").style.display=member.role==="advisor"?"flex":"none";
         document.querySelector("#mailboxBottomBtn").style.display="flex";
         startAnnouncements();
         startTasks();
