@@ -263,6 +263,13 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
  .task-actions{width:100%;justify-content:flex-end;gap:8px;flex-wrap:wrap}
  .task-done-btn,.task-manage-btn{font-size:14px;padding:9px 11px}
 }
+
+/* v8.7.2 手機底部快捷列：加入導師信箱 */
+@media(max-width:760px){
+  .bottom{justify-content:space-around;gap:0;padding-left:4px;padding-right:4px}
+  .bottom a{flex:1 1 20%;min-width:0;padding-left:2px;padding-right:2px;font-size:12px}
+  .bottom b{font-size:20px}
+}
 </style>
 </head>
 <body><div class="access-gate" id="accessGate"><div class="gate-card"><div class="gate-mark">🏫</div><h2>五護101班｜班級公告欄</h2><p>請使用國立臺南護理專科學校 Google 帳號登入，以查看班級公告與行程。</p><button class="auth-btn primary" id="googleLoginBtn">使用 NTIN Google 帳號登入</button><div class="gate-loading" id="gateLoading">正在確認登入狀態…</div><div class="gate-error" id="gateError"></div></div></div>
@@ -300,7 +307,7 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 <section id="links" style="margin-top:22px"><h2>🔗 常用連結</h2><div class="links"><a class="link" href="#">Google Classroom</a><a class="link" href="#">Google Calendar</a><a class="link" href="#">Moodle</a><a class="link" href="#">學校首頁</a><a class="link" href="#">請假系統</a><a class="link" href="#">常用表單</a></div></section></div></div>
 </main>
 <button class="mailbox-fab" id="mailboxBtn">💌 導師信箱</button>
-<div class="bottom"><a href="#home"><b>⌂</b>首頁</a><a href="#notices"><b>▣</b>公告</a><a href="#tasks"><b>✓</b>提醒</a><a href="#timetable"><b>▦</b>課表</a></div>
+<div class="bottom"><a href="#home"><b>⌂</b>首頁</a><a href="#notices"><b>▣</b>公告</a><a href="#tasks"><b>✓</b>提醒</a><a href="#timetable"><b>▦</b>課表</a><a href="#" id="mailboxBottomBtn"><b>✉</b>信箱</a></div>
 
 
 
@@ -613,7 +620,7 @@ function startMailbox(){
 }
 function openMailbox(){mailboxView=isAdvisorMail()?"inbox":"compose";selectedMailboxId=null;document.querySelector("#mailboxBackdrop").classList.add("show");document.body.style.overflow="hidden";renderMailboxTabs();renderMailbox()}
 function closeMailbox(){document.querySelector("#mailboxBackdrop").classList.remove("show");document.body.style.overflow="";selectedMailboxId=null}
-document.querySelector("#mailboxBtn").onclick=openMailbox;document.querySelector("#mailboxClose").onclick=closeMailbox;document.querySelector("#mailboxBackdrop").onclick=e=>{if(e.target===document.querySelector("#mailboxBackdrop"))closeMailbox()};
+document.querySelector("#mailboxBtn").onclick=openMailbox;document.querySelector("#mailboxBottomBtn").onclick=e=>{e.preventDefault();openMailbox()};document.querySelector("#mailboxClose").onclick=closeMailbox;document.querySelector("#mailboxBackdrop").onclick=e=>{if(e.target===document.querySelector("#mailboxBackdrop"))closeMailbox()};
 
 function canManageTask(task){
   if(currentMember?.role==="advisor") return true;
@@ -1107,7 +1114,7 @@ async function initAuth(){
         updateAnnouncementControls(null);
         document.querySelector("#memberAdminBtn").style.display="none";
         document.querySelector("#addTaskBtn").style.display="none";
-        document.querySelector("#mailboxBtn").style.display="none";
+        document.querySelector("#mailboxBtn").style.display="none";document.querySelector("#mailboxBottomBtn").style.display="none";
         if(unsubscribeTasks){unsubscribeTasks();unsubscribeTasks=null;}
         if(unsubscribeMailbox){unsubscribeMailbox();unsubscribeMailbox=null;}
         if(unsubscribeMailboxReplies){unsubscribeMailboxReplies();unsubscribeMailboxReplies=null;}
@@ -1191,7 +1198,7 @@ async function initAuth(){
         updateAnnouncementControls(member);
         document.querySelector("#memberAdminBtn").style.display=member.role==="advisor"?"inline-block":"none";
         document.querySelector("#addTaskBtn").style.display=(member.role==="advisor"||member.role==="officer")?"inline-block":"none";
-        document.querySelector("#mailboxBtn").style.display="block";
+        document.querySelector("#mailboxBtn").style.display="block";document.querySelector("#mailboxBottomBtn").style.display="flex";
         startAnnouncements();
         startTasks();
         startMailbox();
