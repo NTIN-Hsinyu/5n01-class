@@ -680,7 +680,12 @@ const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
 const db=getFirestore(app);
 const provider=new GoogleAuthProvider();
-provider.setCustomParameters({hd:"ntin.edu.tw",prompt:"select_account"});
+provider.setCustomParameters({prompt:"select_account"});
+const TEST_STUDENT_EMAIL="sherry.hychao@gmail.com";
+function isAllowedLoginEmail(email=""){
+  email=String(email).toLowerCase();
+  return email.endsWith("@ntin.edu.tw") || email===TEST_STUDENT_EMAIL;
+}
 provider.addScope("https://www.googleapis.com/auth/calendar.events.readonly");
 
 const CALENDAR_ID="c_classroom8b940f16@group.calendar.google.com";
@@ -860,7 +865,11 @@ async function loadCalendarEvents(token){
         const result=await reauthenticateWithPopup(auth.currentUser,provider);
         const credential=GoogleAuthProvider.credentialFromResult(result);
         calendarAccessToken=credential?.accessToken||null;
-        await loadCalendarEvents(calendarAccessToken);
+        if(email===TEST_STUDENT_EMAIL){
+          document.querySelector("#calendarEvents").innerHTML='<div class="note">測試學生帳號不載入 NTIN 內部班級行事曆；其餘學生端功能可正常測試。</div>';
+        }else{
+          await loadCalendarEvents(calendarAccessToken);
+        }
       }catch(error){console.error("Calendar reauthorization failed:",error);}
     };
     return;
@@ -1479,9 +1488,9 @@ async function initAuth(){
         const credential=GoogleAuthProvider.credentialFromResult(result);
         calendarAccessToken=credential?.accessToken||null;
         const email=(result.user.email||"").toLowerCase();
-        if(!email.endsWith("@ntin.edu.tw")){
+        if(!isAllowedLoginEmail(email)){
           await signOut(auth);
-          showError("此班網目前僅開放 @ntin.edu.tw 學校帳號登入。");
+          showError("此班網僅開放 NTIN 學校帳號與指定測試帳號登入。");
         }
       }catch(error){
         if(error.code==="auth/popup-closed-by-user"){
@@ -1517,9 +1526,9 @@ async function initAuth(){
         return;
       }
       const email=(user.email||"").toLowerCase();
-      if(!email.endsWith("@ntin.edu.tw")){
+      if(!isAllowedLoginEmail(email)){
         await signOut(auth);
-        showError("此班網目前僅開放 @ntin.edu.tw 學校帳號登入。");
+        showError("此班網僅開放 NTIN 學校帳號與指定測試帳號登入。");
         return;
       }
       // Firestore 班級成員驗證：users/{uid} 必須存在且 active = true
@@ -1564,6 +1573,11 @@ async function initAuth(){
         }
 
         const member=memberSnap.data();
+        if(email===TEST_STUDENT_EMAIL && member.role!=="student"){
+          await signOut(auth);
+          showError("測試帳號僅允許使用學生身分。");
+          return;
+        }
         currentMember=member;
         if(member.active !== true){
           await signOut(auth);
