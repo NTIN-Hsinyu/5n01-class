@@ -270,6 +270,45 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
   .bottom a{flex:1 1 20%;min-width:0;padding-left:2px;padding-right:2px;font-size:12px}
   .bottom b{font-size:20px}
 }
+
+/* v8.7.3：移除浮動導師信箱，只保留手機底部快捷列 */
+#mailboxBottomBtn{display:none}
+@media(max-width:760px){
+  #mailboxBottomBtn{align-items:center;justify-content:center;flex-direction:column}
+}
+
+/* v8.7.4：底部快捷列改為一致的簡約線性 SVG 圖示 */
+.bottom a{
+  text-decoration:none;
+}
+.bottom a svg{
+  width:22px;
+  height:22px;
+  display:block;
+  margin:0 auto 4px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.bottom a span{
+  display:block;
+  line-height:1.15;
+}
+@media(max-width:760px){
+  .bottom a{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+  }
+  .bottom a svg{
+    width:22px;
+    height:22px;
+    margin:0 0 4px;
+  }
+}
 </style>
 </head>
 <body><div class="access-gate" id="accessGate"><div class="gate-card"><div class="gate-mark">🏫</div><h2>五護101班｜班級公告欄</h2><p>請使用國立臺南護理專科學校 Google 帳號登入，以查看班級公告與行程。</p><button class="auth-btn primary" id="googleLoginBtn">使用 NTIN Google 帳號登入</button><div class="gate-loading" id="gateLoading">正在確認登入狀態…</div><div class="gate-error" id="gateError"></div></div></div>
@@ -306,8 +345,8 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 </section>
 <section id="links" style="margin-top:22px"><h2>🔗 常用連結</h2><div class="links"><a class="link" href="#">Google Classroom</a><a class="link" href="#">Google Calendar</a><a class="link" href="#">Moodle</a><a class="link" href="#">學校首頁</a><a class="link" href="#">請假系統</a><a class="link" href="#">常用表單</a></div></section></div></div>
 </main>
-<button class="mailbox-fab" id="mailboxBtn">💌 導師信箱</button>
-<div class="bottom"><a href="#home"><b>⌂</b>首頁</a><a href="#notices"><b>▣</b>公告</a><a href="#tasks"><b>✓</b>提醒</a><a href="#timetable"><b>▦</b>課表</a><a href="#" id="mailboxBottomBtn"><b>✉</b>信箱</a></div>
+
+<div class="bottom"><a href="#home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.8 12 3l9 7.8"/><path d="M5.5 9.5V21h13V9.5"/><path d="M9.5 21v-6h5v6"/></svg><span>首頁</span></a><a href="#notices"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg><span>公告</span></a><a href="#tasks"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.7 2.7L16.5 9"/></svg><span>提醒</span></a><a href="#timetable"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg><span>課表</span></a><a href="#" id="mailboxBottomBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg><span>信箱</span></a></div>
 
 
 
@@ -620,7 +659,7 @@ function startMailbox(){
 }
 function openMailbox(){mailboxView=isAdvisorMail()?"inbox":"compose";selectedMailboxId=null;document.querySelector("#mailboxBackdrop").classList.add("show");document.body.style.overflow="hidden";renderMailboxTabs();renderMailbox()}
 function closeMailbox(){document.querySelector("#mailboxBackdrop").classList.remove("show");document.body.style.overflow="";selectedMailboxId=null}
-document.querySelector("#mailboxBtn").onclick=openMailbox;document.querySelector("#mailboxBottomBtn").onclick=e=>{e.preventDefault();openMailbox()};document.querySelector("#mailboxClose").onclick=closeMailbox;document.querySelector("#mailboxBackdrop").onclick=e=>{if(e.target===document.querySelector("#mailboxBackdrop"))closeMailbox()};
+document.querySelector("#mailboxBottomBtn").onclick=e=>{e.preventDefault();openMailbox()};document.querySelector("#mailboxClose").onclick=closeMailbox;document.querySelector("#mailboxBackdrop").onclick=e=>{if(e.target===document.querySelector("#mailboxBackdrop"))closeMailbox()};
 
 function canManageTask(task){
   if(currentMember?.role==="advisor") return true;
@@ -1114,7 +1153,7 @@ async function initAuth(){
         updateAnnouncementControls(null);
         document.querySelector("#memberAdminBtn").style.display="none";
         document.querySelector("#addTaskBtn").style.display="none";
-        document.querySelector("#mailboxBtn").style.display="none";document.querySelector("#mailboxBottomBtn").style.display="none";
+        document.querySelector("#mailboxBottomBtn").style.display="none";
         if(unsubscribeTasks){unsubscribeTasks();unsubscribeTasks=null;}
         if(unsubscribeMailbox){unsubscribeMailbox();unsubscribeMailbox=null;}
         if(unsubscribeMailboxReplies){unsubscribeMailboxReplies();unsubscribeMailboxReplies=null;}
@@ -1198,7 +1237,7 @@ async function initAuth(){
         updateAnnouncementControls(member);
         document.querySelector("#memberAdminBtn").style.display=member.role==="advisor"?"inline-block":"none";
         document.querySelector("#addTaskBtn").style.display=(member.role==="advisor"||member.role==="officer")?"inline-block":"none";
-        document.querySelector("#mailboxBtn").style.display="block";document.querySelector("#mailboxBottomBtn").style.display="flex";
+        document.querySelector("#mailboxBottomBtn").style.display="flex";
         startAnnouncements();
         startTasks();
         startMailbox();
