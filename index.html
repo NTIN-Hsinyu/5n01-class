@@ -313,7 +313,12 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 /* v8.7.5：預留底部快捷列空間，避免常用連結被遮住 */
 @media(max-width:760px){
   main{
-    padding-bottom:calc(100px + env(safe-area-inset-bottom));
+    /* 預留固定快捷列＋額外可捲動空間，確保最後一列常用連結能完整滑到快捷列上方 */
+    padding-bottom:calc(170px + env(safe-area-inset-bottom));
+  }
+  #links{
+    scroll-margin-bottom:calc(120px + env(safe-area-inset-bottom));
+    margin-bottom:30px;
   }
 }
 
@@ -373,7 +378,12 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 <span style="font-size:20px">›</span></a>
 <div class="note">目前先保留班規入口；之後可連到班規網頁、PDF、Google 文件，或直接做成 PWA 內頁。</div>
 </section>
-<section id="links" style="margin-top:22px"><h2>🔗 常用連結</h2><div class="links"><a class="link" href="#" id="seatToolBtn" style="display:none">班級座位表</a><a class="link" href="#">Google Classroom</a><a class="link" href="#">Google Calendar</a><a class="link" href="#">Moodle</a><a class="link" href="#">學校首頁</a><a class="link" href="#">請假系統</a><a class="link" href="#">常用表單</a></div></section></div></div>
+<section id="links" style="margin-top:22px"><h2>🔗 常用連結</h2><div class="links">
+<a class="link" href="https://www.ntin.edu.tw/" target="_blank" rel="noopener noreferrer">學校首頁</a>
+<a class="link" href="https://sso.ntin.edu.tw/" target="_blank" rel="noopener noreferrer">請假系統</a>
+<a class="link" href="https://moodle.ntin.edu.tw/" target="_blank" rel="noopener noreferrer">Moodle</a>
+<a class="link" href="#" id="seatToolBtn" style="display:none">班級座位表</a>
+</div></section></div></div>
 </main>
 
 <div class="bottom"><a href="#home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.8 12 3l9 7.8"/><path d="M5.5 9.5V21h13V9.5"/><path d="M9.5 21v-6h5v6"/></svg><span>首頁</span></a><a href="#notices"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg><span>公告</span></a><a href="#tasks"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.7 2.7L16.5 9"/></svg><span>提醒</span></a><a href="#timetable"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg><span>課表</span></a><a href="#" id="mailboxBottomBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg><span>信箱</span></a></div>
