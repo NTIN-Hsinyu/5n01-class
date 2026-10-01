@@ -354,6 +354,9 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
             <label>日期／截止時間
               <input id="announcementTaskDue" type="datetime-local">
             </label>
+            <label>重複
+              <select id="announcementTaskRepeat"><option value="none">不重複</option><option value="weekly">每週</option><option value="biweekly">每兩週</option><option value="monthly">每月</option></select>
+            </label>
             <label>待辦說明（可留空）
               <input id="announcementTaskNote" type="text" maxlength="160" placeholder="例如：請交給班長／請於 Classroom 繳交">
             </label>
@@ -384,8 +387,11 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
       <label>說明
         <textarea id="taskNote" maxlength="300" placeholder="補充繳交方式、範圍或注意事項"></textarea>
       </label>
-      <label>日期／截止時間
+      <label>第一次截止時間
         <input id="taskDue" type="datetime-local">
+      </label>
+      <label>重複
+        <select id="taskRepeat"><option value="none">不重複</option><option value="weekly">每週</option><option value="biweekly">每兩週</option><option value="monthly">每月</option></select>
       </label>
       <div class="form-error" id="taskError"></div>
       <div class="modal-actions">
@@ -508,11 +514,20 @@ function timestampToLocalInput(ts){
   const pad=n=>String(n).padStart(2,"0");
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
-function formatTaskDue(ts){
-  if(!ts) return "未設定";
-  const d=ts?.toDate ? ts.toDate() : new Date(ts);
-  const hasTime=d.getHours()!==0||d.getMinutes()!==0;
-  return `${d.getMonth()+1}/${d.getDate()}${hasTime?` ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`:""}${d<Date.now()?" 已截止":""}`;
+function repeatLabel(r){return r==="weekly"?"每週":r==="biweekly"?"每兩週":r==="monthly"?"每月":"";}
+function addMonthsClamped(base,n){const d=new Date(base),day=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+n);const last=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();d.setDate(Math.min(day,last));return d;}
+function occurrenceDue(task,now=new Date()){
+  const base=task.dueAt?.toDate?task.dueAt.toDate():new Date(task.dueAt);
+  if(Number.isNaN(base.getTime())||!task.repeat||task.repeat==="none"||base>now)return base;
+  if(task.repeat==="weekly"||task.repeat==="biweekly"){const step=(task.repeat==="weekly"?7:14)*86400000;return new Date(base.getTime()+Math.max(0,Math.floor((now-base)/step))*step);}
+  if(task.repeat==="monthly"){let n=(now.getFullYear()-base.getFullYear())*12+now.getMonth()-base.getMonth();let d=addMonthsClamped(base,Math.max(0,n));if(d>now&&n>0)d=addMonthsClamped(base,n-1);return d;}
+  return base;
+}
+function occurrenceKey(task){const d=occurrenceDue(task);return d&&!Number.isNaN(d.getTime())?d.toISOString().slice(0,16):"unknown";}
+function formatTaskDue(task){
+  const d=occurrenceDue(task);if(!d||Number.isNaN(d.getTime()))return "未設定";
+  const time=(d.getHours()||d.getMinutes())?` ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`:"";
+  const rr=repeatLabel(task.repeat);return `${d.getMonth()+1}/${d.getDate()}${time}${rr?` · ${rr}`:""}${d<Date.now()?" 已截止":""}`;
 }
 function taskTypeLabel(type){ return type==="quiz"?"小考":type==="assignment"?"作業":"待辦"; }
 
@@ -520,23 +535,24 @@ function renderTasks(){
   const box=document.querySelector("#taskList");
   if(!classTasks.length){box.innerHTML='<div class="task-empty">目前沒有待辦事項。</div>';return;}
   const sorted=[...classTasks].sort((a,b)=>{
-    const ad=a.dueAt?.toMillis?.()??new Date(a.dueAt||0).getTime();
-    const bd=b.dueAt?.toMillis?.()??new Date(b.dueAt||0).getTime();
+    const ad=occurrenceDue(a)?.getTime?.()??0;
+    const bd=occurrenceDue(b)?.getTime?.()??0;
     return ad-bd;
   });
   box.innerHTML="";
   sorted.forEach(t=>{
     const row=document.createElement("div");
     row.className=`task ${t.type==="quiz"?"quiz":"assignment"}`;
-    const doneKey=`class101_task_${t.id}_done`;
+    const doneKey=`class101_task_${t.id}_${occurrenceKey(t)}_done`;
     const done=localStorage.getItem(doneKey)==="1";
     const linked=t.sourceAnnouncementId ? '<div class="task-linked">由班級公告加入</div>' : '';
     const manage=canManageTask(t)?`<button class="task-manage-btn" data-edit-task="${t.id}">編輯</button><button class="task-manage-btn delete" data-delete-task="${t.id}">刪除</button>`:"";
-    row.innerHTML=`<div class="task-main"><span class="dot"></span><div class="task-info"><div class="task-title">${escHtml(t.title||"未命名待辦")}</div><div class="task-sub">${escHtml(t.note||taskTypeLabel(t.type))}</div>${linked}</div><div class="task-time">${escHtml(formatTaskDue(t.dueAt))}</div></div><div class="task-actions"><button class="task-done-btn ${done?"completed":""}" data-done-task="${t.id}">${done?"✓ 已完成":"已完成"}</button>${manage}</div>`;
+    row.innerHTML=`<div class="task-main"><span class="dot"></span><div class="task-info"><div class="task-title">${escHtml(t.title||"未命名待辦")}</div><div class="task-sub">${escHtml(t.note||taskTypeLabel(t.type))}</div>${linked}</div><div class="task-time">${escHtml(formatTaskDue(t))}</div></div><div class="task-actions"><button class="task-done-btn ${done?"completed":""}" data-done-task="${t.id}">${done?"✓ 已完成":"已完成"}</button>${manage}</div>`;
     box.appendChild(row);
   });
   box.querySelectorAll("[data-done-task]").forEach(btn=>btn.onclick=()=>{
-    const key=`class101_task_${btn.dataset.doneTask}_done`;
+    const task=classTasks.find(t=>t.id===btn.dataset.doneTask); if(!task)return;
+    const key=`class101_task_${task.id}_${occurrenceKey(task)}_done`;
     const done=localStorage.getItem(key)==="1";
     if(done){localStorage.removeItem(key);btn.classList.remove("completed");btn.textContent="已完成";}
     else{localStorage.setItem(key,"1");btn.classList.add("completed");btn.textContent="✓ 已完成";}
@@ -567,6 +583,7 @@ function openTaskModal(task=null){
   document.querySelector("#taskTitle").value=task?.title||"";
   document.querySelector("#taskNote").value=task?.note||"";
   document.querySelector("#taskDue").value=timestampToLocalInput(task?.dueAt);
+  document.querySelector("#taskRepeat").value=task?.repeat||"none";
   document.querySelector("#taskError").style.display="none";
   document.querySelector("#taskModal").classList.add("show");
 }
@@ -578,17 +595,18 @@ async function saveTask(){
   const note=document.querySelector("#taskNote").value.trim();
   const type=document.querySelector("#taskType").value;
   const due=document.querySelector("#taskDue").value;
+  const repeat=document.querySelector("#taskRepeat").value;
   if(!title||!due){err.textContent="請填寫標題與日期／截止時間。";err.style.display="block";return;}
   if(!(currentMember?.role==="advisor"||currentMember?.role==="officer")||!auth.currentUser)return;
   btn.disabled=true;
   try{
     if(editingTaskId){
       const old=classTasks.find(t=>t.id===editingTaskId);
-      await updateDoc(doc(db,"tasks",editingTaskId),{title,note,type,dueAt:new Date(due),updatedAt:serverTimestamp()});
+      await updateDoc(doc(db,"tasks",editingTaskId),{title,note,type,dueAt:new Date(due),repeat,updatedAt:serverTimestamp()});
       // 若這是公告連動待辦，待辦標題變更不反向修改公告；避免意外改公告正文。
     }else{
       await addDoc(collection(db,"tasks"),{
-        title,note,type,dueAt:new Date(due),
+        title,note,type,dueAt:new Date(due),repeat,
         authorUid:auth.currentUser.uid,
         authorName:currentMember.name||auth.currentUser.displayName||"",
         sourceAnnouncementId:null,
@@ -808,6 +826,7 @@ function openAnnouncementModal(notice=null){
   document.querySelector("#announcementTaskFields").classList.toggle("show",!!linkedTask);
   document.querySelector("#announcementTaskType").value=linkedTask?.type||"todo";
   document.querySelector("#announcementTaskDue").value=timestampToLocalInput(linkedTask?.dueAt);
+  document.querySelector("#announcementTaskRepeat").value=linkedTask?.repeat||"none";
   document.querySelector("#announcementTaskNote").value=linkedTask?.note||"";
   document.querySelector("#announcementError").style.display="none";
   document.querySelector("#announcementModal").classList.add("show");
@@ -823,6 +842,7 @@ async function publishAnnouncement(){
   const addTask=document.querySelector("#announcementAddTask").checked;
   const taskType=document.querySelector("#announcementTaskType").value;
   const taskDueValue=document.querySelector("#announcementTaskDue").value;
+  const taskRepeat=document.querySelector("#announcementTaskRepeat").value;
   const taskNote=document.querySelector("#announcementTaskNote").value.trim();
 
   if(!title||!content){
@@ -857,6 +877,7 @@ async function publishAnnouncement(){
         note:taskNote,
         type:taskType,
         dueAt:new Date(taskDueValue),
+        repeat:taskRepeat,
         sourceAnnouncementId:announcementId,
         authorUid:auth.currentUser.uid,
         authorName:currentMember.name||auth.currentUser.displayName||"",
@@ -879,6 +900,7 @@ async function publishAnnouncement(){
     document.querySelector("#announcementAddTask").checked=false;
     document.querySelector("#announcementTaskFields").classList.remove("show");
     document.querySelector("#announcementTaskDue").value="";
+    document.querySelector("#announcementTaskRepeat").value="none";
     document.querySelector("#announcementTaskNote").value="";
     document.querySelector("#announcementModal").classList.remove("show");
     closeNoticeDetail();
