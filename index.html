@@ -1587,12 +1587,19 @@ async function openDiscipline(){
   document.querySelector("#disciplineBackdrop").classList.add("show");
   document.body.style.overflow="hidden";
   document.querySelector("#addDisciplineBtn").style.display=canEditDiscipline()?"inline-block":"none";
-  if(currentMember?.role==="advisor"){
-    await syncAdvisorRoster();
+  try{
+    if(currentMember?.role==="advisor"){
+      await syncAdvisorRoster();
+    }
+    await loadDisciplineRoster();
+    await loadDisciplineAudits();
+    renderDiscipline();
+  }catch(error){
+    console.error("Discipline module open failed:",error);
+    document.querySelector("#disciplineStats").textContent="班規記點目前無法載入";
+    document.querySelector("#disciplineList").innerHTML=
+      '<div class="mail-empty">班規記點資料尚未就緒。請確認新版 Firestore Rules 已發布後再試。</div>';
   }
-  await loadDisciplineRoster();
-  await loadDisciplineAudits();
-  renderDiscipline();
 }
 function closeDiscipline(){
   document.querySelector("#disciplineBackdrop").classList.remove("show");
@@ -2051,9 +2058,19 @@ async function initAuth(){
         startTasks();
         startMailbox();
         startTimetable();
-        await syncOwnRoster(user,member);
-        if(member.role==="advisor") await syncAdvisorRoster();
-        await startDiscipline();
+
+        // v8.9.8：班規記點是附加模組。
+        // 即使新 collection / Rules 尚未就緒，也不能阻斷原本的班網登入。
+        try{
+          await syncOwnRoster(user,member);
+          if(member.role==="advisor") await syncAdvisorRoster();
+          await startDiscipline();
+        }catch(disciplineInitError){
+          console.warn("Discipline module initialization skipped:",disciplineInitError);
+          disciplineRoster=[];
+          disciplineRecords=[];
+          disciplinePenalties=[];
+        }
 
         await loadCalendarEvents(calendarAccessToken);
       }catch(error){
