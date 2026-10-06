@@ -1570,30 +1570,52 @@ function renderDiscipline(){
   );
 }
 async function startDiscipline(){
+  // 已啟動過就不重複建立 Firestore listeners。
+  if(unsubscribeDisciplineRecords || unsubscribeDisciplinePenalties){
+    await loadDisciplineRoster();
+    if(currentMember?.role==="advisor") await loadDisciplineAudits();
+    renderDiscipline();
+    return;
+  }
+
   await loadDisciplineRoster();
-  await loadDisciplineAudits();
-  if(unsubscribeDisciplineRecords) unsubscribeDisciplineRecords();
-  if(unsubscribeDisciplinePenalties) unsubscribeDisciplinePenalties();
+  if(currentMember?.role==="advisor") await loadDisciplineAudits();
+
   unsubscribeDisciplineRecords=onSnapshot(collection(db,"disciplineRecords"),snap=>{
     disciplineRecords=snap.docs.map(d=>({id:d.id,...d.data()}));
     renderDiscipline();
-  },e=>console.error("Discipline records load failed",e));
+  },e=>{
+    console.error("Discipline records load failed",e);
+    const stats=document.querySelector("#disciplineStats");
+    if(stats) stats.textContent="班規記點目前無法載入";
+  });
+
   unsubscribeDisciplinePenalties=onSnapshot(collection(db,"disciplinePenalties"),snap=>{
     disciplinePenalties=snap.docs.map(d=>({id:d.id,...d.data()}));
     renderDiscipline();
-  },e=>console.error("Discipline penalties load failed",e));
+  },e=>{
+    console.error("Discipline penalties load failed",e);
+    const stats=document.querySelector("#disciplineStats");
+    if(stats) stats.textContent="班規記點目前無法載入";
+  });
 }
 async function openDiscipline(){
   document.querySelector("#disciplineBackdrop").classList.add("show");
   document.body.style.overflow="hidden";
   document.querySelector("#addDisciplineBtn").style.display=canEditDiscipline()?"inline-block":"none";
+  document.querySelector("#disciplineStats").textContent="正在載入記點資料…";
+
   try{
-    if(currentMember?.role==="advisor"){
+    // 真正點進班規記點後，才載入記點相關資料。
+    await startDiscipline();
+
+    // 舊版升級時 classRoster 可能完全是空的。
+    // 只在「導師 + 完全空白」時做一次既有 users → classRoster 遷移。
+    if(currentMember?.role==="advisor" && disciplineRoster.length===0){
       await syncAdvisorRoster();
+      await loadDisciplineRoster();
+      renderDiscipline();
     }
-    await loadDisciplineRoster();
-    await loadDisciplineAudits();
-    renderDiscipline();
   }catch(error){
     console.error("Discipline module open failed:",error);
     document.querySelector("#disciplineStats").textContent="班規記點目前無法載入";
@@ -2059,18 +2081,12 @@ async function initAuth(){
         startMailbox();
         startTimetable();
 
-        // v8.9.8：班規記點是附加模組。
-        // 即使新 collection / Rules 尚未就緒，也不能阻斷原本的班網登入。
-        try{
-          await syncOwnRoster(user,member);
-          if(member.role==="advisor") await syncAdvisorRoster();
-          await startDiscipline();
-        }catch(disciplineInitError){
-          console.warn("Discipline module initialization skipped:",disciplineInitError);
-          disciplineRoster=[];
-          disciplineRecords=[];
-          disciplinePenalties=[];
-        }
+        // v8.9.8 效能修正：
+        // 班規記點不再阻塞登入；學生名單同步改為背景執行。
+        // 記點資料只有真正打開「班規記點」時才載入。
+        syncOwnRoster(user,member).catch(rosterSyncError=>{
+          console.warn("Roster background sync skipped:",rosterSyncError);
+        });
 
         await loadCalendarEvents(calendarAccessToken);
       }catch(error){
