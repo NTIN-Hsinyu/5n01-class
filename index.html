@@ -1516,6 +1516,17 @@ async function ensurePendingPenalties(studentUid){
   }
   await batch.commit();
 }
+async function loadDisciplineAudits(){
+  disciplineAudits=new Map();
+  if(currentMember?.role!=="advisor") return;
+  try{
+    const snap=await getDocs(collection(db,"disciplineAudit"));
+    snap.docs.forEach(d=>disciplineAudits.set(d.id,d.data()));
+  }catch(e){
+    console.warn("Audit load failed",e);
+  }
+}
+
 function renderDiscipline(){
   const box=document.querySelector("#disciplineList");
   if(!box) return;
