@@ -368,6 +368,33 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 /* v8.9.5 小老師權限 */
 .member-little-teacher{border:1px solid #d7dce2;background:#fff;border-radius:10px;padding:7px 10px;font-weight:700;cursor:pointer}
 .member-little-teacher.active{background:#eef6ff;border-color:#8ab4e8}
+
+/* v8.9.8 班規記點 */
+.discipline-link{display:flex;align-items:center;justify-content:space-between;gap:14px;text-decoration:none;margin-top:10px}
+.discipline-modal{width:min(820px,100%);max-height:90vh;display:flex;flex-direction:column}
+.discipline-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:10px 0 12px;flex-wrap:wrap}
+.discipline-stats{font-size:13px;color:var(--muted);line-height:1.6}
+.discipline-list{overflow:auto;border-top:1px solid var(--line)}
+.discipline-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:13px 2px;border-bottom:1px solid var(--line);align-items:center}
+.discipline-name{font-weight:900}.discipline-detail{font-size:13px;color:#566168;line-height:1.65;margin-top:4px}
+.discipline-count{font-weight:900;border-radius:999px;padding:6px 10px;background:#f3f5f7;white-space:nowrap}
+.discipline-count.warn{background:#fff6dc;color:#8b6813}.discipline-count.danger{background:#fff0ec;color:#a64d3c}
+.discipline-history{margin-top:8px;padding-left:0;display:grid;gap:6px}
+.discipline-history-item{font-size:13px;padding:8px 10px;background:#fafbfc;border-radius:9px;line-height:1.55}
+.discipline-private{font-size:11px;color:#7b8790;margin-top:3px}
+.discipline-penalty{font-size:12px;font-weight:800;margin-top:7px;color:#9a5c17}
+.discipline-complete{border:1px solid #cce8df;background:#eef9f5;color:#287865;border-radius:9px;padding:7px 9px;font-weight:800;cursor:pointer}
+.member-discipline,.member-duty{border:1px solid #d7dce2;background:#fff;border-radius:10px;padding:7px 10px;font-weight:700;cursor:pointer}
+.member-discipline.active{background:#fff6dc;border-color:#e7c96d}
+.member-duty.active{background:#eef9f5;border-color:#8fcbb9}
+.discipline-form{display:grid;gap:12px}
+.discipline-form label{font-size:13px;font-weight:700;color:#566168}
+.discipline-form select,.discipline-form input{width:100%;margin-top:5px;border:1px solid var(--line);border-radius:11px;padding:11px 12px;font:inherit;background:#fff}
+@media(max-width:760px){
+  .discipline-modal{width:100%;max-height:92vh;border-radius:22px 22px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom))}
+  #disciplineBackdrop,#disciplineAddBackdrop{align-items:flex-end;padding:0}
+  .discipline-row{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body><div class="access-gate" id="accessGate"><div class="gate-card"><div class="gate-mark">🏫</div><h2>五護101班｜班級公告欄</h2><p>請使用國立臺南護理專科學校 Google 帳號登入，以查看班級公告與行程。</p><button class="auth-btn primary" id="googleLoginBtn">使用 NTIN Google 帳號登入</button><div class="gate-loading" id="gateLoading">正在確認登入狀態…</div><div class="gate-error" id="gateError"></div></div></div>
@@ -399,6 +426,9 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 <div><b>五護101班｜班規</b><div class="meta" style="margin-top:5px">查看班級共同約定、生活規範與重要注意事項</div></div>
 <span style="font-size:20px">›</span></a>
 <div class="note">目前先保留班規入口；之後可連到班規網頁、PDF、Google 文件，或直接做成 PWA 內頁。</div>
+<a class="link discipline-link" href="#" id="disciplineLink">
+<div><b>班規記點</b><div class="meta" style="margin-top:5px">查看全班記點、違規事項與值日處置狀態</div></div>
+<span style="font-size:20px">›</span></a>
 </section>
 <section id="links" style="margin-top:22px"><h2>🔗 常用連結</h2><div class="links">
 <a class="link" href="https://www.ntin.edu.tw/" target="_blank" rel="noopener noreferrer">學校首頁</a>
@@ -657,6 +687,49 @@ renderAll();
 </div>
 
 
+
+<div class="modal-backdrop" id="disciplineBackdrop" role="dialog" aria-modal="true">
+  <div class="modal discipline-modal">
+    <div class="member-admin-top">
+      <div><div class="meta">五護101班｜全班公開</div><h3>班規記點</h3></div>
+      <button class="notice-close" id="disciplineClose">×</button>
+    </div>
+    <div class="discipline-toolbar">
+      <div class="discipline-stats" id="disciplineStats">正在載入記點資料…</div>
+      <button class="add-task-btn" id="addDisciplineBtn">＋ 新增記點</button>
+    </div>
+    <div class="note" style="margin:0 0 10px">每累計 3 點，依班規擔任值日生一週。登記人資訊僅導師可查看；值日完成由具「值日監督」權限的幹部確認。</div>
+    <div class="discipline-list" id="disciplineList"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="disciplineAddBackdrop" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="modal-icon">📋</div>
+    <h3>新增班規記點</h3>
+    <div class="discipline-form">
+      <label>學生
+        <select id="disciplineStudent"></select>
+      </label>
+      <label>違規事項
+        <select id="disciplineReason">
+          <option value="late_payment">未按時繳交班費、同意書，需催繳者</option>
+          <option value="late_unexcused">8:15上課前未到校且未請假者</option>
+          <option value="class_disruption">上課吵鬧影響秩序者</option>
+        </select>
+      </label>
+      <label>日期
+        <input id="disciplineDate" type="date">
+      </label>
+      <div class="form-error" id="disciplineError"></div>
+      <div class="modal-actions">
+        <button class="done" id="saveDisciplineBtn">確認記點 +1</button>
+        <button class="later" id="cancelDisciplineBtn">取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="taskModal" role="dialog" aria-modal="true" aria-labelledby="taskModalTitle">
   <div class="modal">
     <div class="modal-icon">📝</div>
@@ -712,6 +785,12 @@ provider.addScope("https://www.googleapis.com/auth/calendar.events.readonly");
 const CALENDAR_ID="c_classroom8b940f16@group.calendar.google.com";
 let calendarAccessToken=null;
 let currentMember=null;
+let disciplineRecords=[];
+let disciplinePenalties=[];
+let disciplineRoster=[];
+let disciplineAudits=new Map();
+let unsubscribeDisciplineRecords=null;
+let unsubscribeDisciplinePenalties=null;
 let firestoreNotices=[];
 let currentNoticeFilter="全部";
 let unsubscribeAnnouncements=null;
@@ -1039,6 +1118,12 @@ function canEditTasks(){
     || currentMember?.role==="officer"
     || currentMember?.taskEditor===true;
 }
+function canEditDiscipline(){
+  return currentMember?.role==="advisor" || currentMember?.disciplineEditor===true;
+}
+function canSuperviseDuty(){
+  return currentMember?.role==="advisor" || currentMember?.dutySupervisor===true;
+}
 function canManageTask(task){
   if(currentMember?.role==="advisor") return true;
   return canEditTasks() && task?.authorUid===auth.currentUser?.uid;
@@ -1228,7 +1313,10 @@ function renderMembers(keyword=""){
 
   const students=classMembers.filter(m=>m.role==="student").length;
   const officers=classMembers.filter(m=>m.role==="officer").length;
-  const littleTeachers=classMembers.filter(m=>m.taskEditor===true).length; document.querySelector("#memberSummary").textContent=`已登入成員 ${classMembers.length} 人｜學生 ${students} 人｜幹部 ${officers} 人｜小老師 ${littleTeachers} 人`;
+  const littleTeachers=classMembers.filter(m=>m.taskEditor===true).length;
+  const disciplineEditors=classMembers.filter(m=>m.disciplineEditor===true).length;
+  const dutySupervisors=classMembers.filter(m=>m.dutySupervisor===true).length;
+  document.querySelector("#memberSummary").textContent=`已登入成員 ${classMembers.length} 人｜學生 ${students} 人｜幹部 ${officers} 人｜小老師 ${littleTeachers} 人｜記點 ${disciplineEditors} 人｜值日監督 ${dutySupervisors} 人`;
 
   if(!rows.length){
     box.innerHTML='<div class="notice-empty">找不到符合的成員。</div>';
@@ -1242,7 +1330,7 @@ function renderMembers(keyword=""){
     const role=memberRoleLabel(m);
     const canToggle=m.role==="student"||m.role==="officer";
     const buttonText=m.role==="officer"?"取消幹部":"設為幹部";
-    row.innerHTML=`<div><div class="member-name">${escHtml(m.name||"未命名成員")}</div><div class="member-info">${m.studentId?`學號 ${escHtml(m.studentId)}｜`:""}${escHtml(m.email||"")}</div></div><div class="member-actions"><span class="member-role">${role}</span>${canToggle?`<button class="member-toggle ${m.role==="officer"?"officer":""}" data-uid="${escHtml(m.id)}">${buttonText}</button><button class="member-little-teacher ${m.taskEditor===true?"active":""}" data-task-uid="${escHtml(m.id)}">${m.taskEditor===true?"取消小老師":"設為小老師"}</button>`:""}</div>`;
+    row.innerHTML=`<div><div class="member-name">${escHtml(m.name||"未命名成員")}</div><div class="member-info">${m.studentId?`學號 ${escHtml(m.studentId)}｜`:""}${escHtml(m.email||"")}</div></div><div class="member-actions"><span class="member-role">${role}</span>${canToggle?`<button class="member-toggle ${m.role==="officer"?"officer":""}" data-uid="${escHtml(m.id)}">${buttonText}</button><button class="member-little-teacher ${m.taskEditor===true?"active":""}" data-task-uid="${escHtml(m.id)}">${m.taskEditor===true?"取消小老師":"設為小老師"}</button><button class="member-discipline ${m.disciplineEditor===true?"active":""}" data-discipline-uid="${escHtml(m.id)}">${m.disciplineEditor===true?"取消記點":"班規記點"}</button><button class="member-duty ${m.dutySupervisor===true?"active":""}" data-duty-uid="${escHtml(m.id)}">${m.dutySupervisor===true?"取消值日監督":"值日監督"}</button>`:""}</div>`;
     box.appendChild(row);
   });
 
@@ -1252,6 +1340,28 @@ function renderMembers(keyword=""){
   box.querySelectorAll(".member-little-teacher").forEach(btn=>{
     btn.onclick=()=>toggleLittleTeacher(btn.dataset.taskUid);
   });
+  box.querySelectorAll(".member-discipline").forEach(btn=>{
+    btn.onclick=()=>toggleMemberFlag(btn.dataset.disciplineUid,"disciplineEditor","班規記點");
+  });
+  box.querySelectorAll(".member-duty").forEach(btn=>{
+    btn.onclick=()=>toggleMemberFlag(btn.dataset.dutyUid,"dutySupervisor","值日監督");
+  });
+}
+
+async function toggleMemberFlag(uid,field,label){
+  if(currentMember?.role!=="advisor") return;
+  const member=classMembers.find(m=>m.id===uid);
+  if(!member || !["student","officer"].includes(member.role)) return;
+  const next=member[field]!==true;
+  if(!confirm(`確定要${next?"開啟":"取消"}「${member.name||member.email}」的${label}權限嗎？`)) return;
+  try{
+    await updateDoc(doc(db,"users",uid),{[field]:next});
+    member[field]=next;
+    renderMembers(document.querySelector("#memberSearch").value);
+  }catch(error){
+    console.error("Member permission update failed:",error);
+    alert(`${label}權限更新失敗，請確認 Firestore Rules 已更新。`);
+  }
 }
 
 async function toggleLittleTeacher(uid){
@@ -1321,6 +1431,247 @@ document.querySelector("#memberAdminBackdrop").onclick=e=>{
   if(e.target===document.querySelector("#memberAdminBackdrop")) closeMemberAdmin();
 };
 document.querySelector("#memberSearch").oninput=e=>renderMembers(e.target.value);
+
+
+function deriveStudentId(email=""){
+  const m=String(email).toLowerCase().match(/^s(\d+)@ntin\.edu\.tw$/);
+  return m?m[1]:"";
+}
+async function syncOwnRoster(user,member){
+  if(member?.role==="advisor") return;
+  try{
+    await setDoc(doc(db,"classRoster",user.uid),{
+      name:member.name||user.displayName||"",
+      studentId:member.studentId||deriveStudentId(member.email||user.email||""),
+      active:member.active===true
+    },{merge:true});
+  }catch(e){ console.warn("Roster self-sync skipped",e); }
+}
+async function syncAdvisorRoster(){
+  if(currentMember?.role!=="advisor") return;
+  try{
+    const snap=await getDocs(collection(db,"users"));
+    const batch=writeBatch(db);
+    snap.docs.forEach(d=>{
+      const m=d.data();
+      if(m.role==="advisor") return;
+      batch.set(doc(db,"classRoster",d.id),{
+        name:m.name||"",
+        studentId:m.studentId||deriveStudentId(m.email||""),
+        active:m.active===true
+      },{merge:true});
+    });
+    await batch.commit();
+  }catch(e){ console.warn("Advisor roster sync skipped",e); }
+}
+async function loadDisciplineRoster(){
+  const snap=await getDocs(collection(db,"classRoster"));
+  disciplineRoster=snap.docs.map(d=>({id:d.id,...d.data()}))
+    .filter(x=>x.active===true)
+    .sort((a,b)=>(a.studentId||"").localeCompare(b.studentId||"","zh-Hant",{numeric:true}));
+}
+function formatDisciplineDate(s){
+  if(!s) return "";
+  const [y,m,d]=String(s).split("-");
+  return `${Number(m)}/${Number(d)}`;
+}
+function penaltyStatusForStudent(uid){
+  return disciplinePenalties.filter(p=>p.studentUid===uid)
+    .sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+}
+function allRecordsForStudent(uid){
+  return disciplineRecords.filter(r=>r.studentUid===uid)
+    .sort((a,b)=>String(a.occurredDate||"").localeCompare(String(b.occurredDate||"")));
+}
+function completedPenaltyCount(uid){
+  return penaltyStatusForStudent(uid).filter(p=>p.status==="completed").length;
+}
+function pendingPenaltyCount(uid){
+  return penaltyStatusForStudent(uid).filter(p=>p.status==="pending").length;
+}
+function unresolvedPoints(uid){
+  // 只有衛生股長確認「值日一週完成」後，才扣除該次處置所對應的 3 點。
+  return Math.max(0, allRecordsForStudent(uid).length - completedPenaltyCount(uid)*3);
+}
+function requiredPendingPenalties(uid){
+  // 例如 4/3、5/3 都需要 1 週；6/3 需要 2 週。
+  return Math.floor(unresolvedPoints(uid)/3);
+}
+async function ensurePendingPenalties(studentUid){
+  if(!canEditDiscipline()) return;
+  const required=requiredPendingPenalties(studentUid);
+  const existing=pendingPenaltyCount(studentUid);
+  if(existing>=required) return;
+  const student=disciplineRoster.find(s=>s.id===studentUid);
+  const batch=writeBatch(db);
+  for(let i=existing;i<required;i++){
+    const ref=doc(collection(db,"disciplinePenalties"));
+    batch.set(ref,{
+      studentUid,
+      studentId:student?.studentId||"",
+      studentName:student?.name||"",
+      status:"pending",
+      createdAt:serverTimestamp()
+    });
+  }
+  await batch.commit();
+}
+function renderDiscipline(){
+  const box=document.querySelector("#disciplineList");
+  if(!box) return;
+  const roster=disciplineRoster;
+  const counts={zero:0,one:0,two:0,pending:0};
+  roster.forEach(s=>{
+    const n=unresolvedPoints(s.id);
+    if(n===0) counts.zero++;
+    else if(n===1) counts.one++;
+    else counts.two++;
+    counts.pending+=pendingPenaltyCount(s.id);
+  });
+  document.querySelector("#disciplineStats").textContent=
+    `0 點 ${counts.zero} 人｜1 點 ${counts.one} 人｜2 點以上 ${counts.two} 人｜待完成值日 ${counts.pending} 週`;
+  if(!roster.length){
+    box.innerHTML='<div class="mail-empty">目前尚無班級名單資料。導師重新登入後會自動同步已登入成員。</div>';
+    return;
+  }
+  box.innerHTML="";
+  roster.forEach(s=>{
+    const unresolved=unresolvedPoints(s.id);
+    const all=allRecordsForStudent(s.id).slice().reverse();
+    const penalties=penaltyStatusForStudent(s.id);
+    const pending=penalties.filter(p=>p.status==="pending");
+    const completed=penalties.filter(p=>p.status==="completed");
+    const row=document.createElement("div");
+    row.className="discipline-row";
+    const history=all.length?all.map(r=>{
+      const audit=disciplineAudits.get(r.id);
+      const privateLine=(currentMember?.role==="advisor" && audit)
+        ?`<div class="discipline-private">登記人：${escHtml(audit.authorName||"")}</div>`:"";
+      return `<div class="discipline-history-item">${escHtml(formatDisciplineDate(r.occurredDate))}　${escHtml(r.reasonText||"")}　+1${privateLine}</div>`;
+    }).join(""):'<div class="discipline-detail">目前無記點紀錄</div>';
+
+    const pendingHtml=pending.map(p=>
+      `<div class="discipline-penalty">值日生一週｜待完成 ${canSuperviseDuty()
+        ?`<button class="discipline-complete" data-penalty="${escHtml(p.id)}">✓ 確認完成</button>`:""}</div>`
+    ).join("");
+    const completedHtml=completed.length
+      ?`<div class="discipline-penalty" style="color:#287865">已完成值日：${completed.length} 週</div>`:"";
+    const cls=unresolved>=3?"danger":unresolved>=1?"warn":"";
+    row.innerHTML=`<div>
+      <div class="discipline-name">${s.studentId?escHtml(s.studentId)+"　":""}${escHtml(s.name||"")}</div>
+      <div class="discipline-history">${history}</div>
+      ${pendingHtml}${completedHtml}
+    </div>
+    <div class="discipline-count ${cls}">${unresolved} / 3 點</div>`;
+    box.appendChild(row);
+  });
+  box.querySelectorAll("[data-penalty]").forEach(btn=>
+    btn.onclick=()=>completeDutyPenalty(btn.dataset.penalty)
+  );
+}
+async function startDiscipline(){
+  await loadDisciplineRoster();
+  await loadDisciplineAudits();
+  if(unsubscribeDisciplineRecords) unsubscribeDisciplineRecords();
+  if(unsubscribeDisciplinePenalties) unsubscribeDisciplinePenalties();
+  unsubscribeDisciplineRecords=onSnapshot(collection(db,"disciplineRecords"),snap=>{
+    disciplineRecords=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderDiscipline();
+  },e=>console.error("Discipline records load failed",e));
+  unsubscribeDisciplinePenalties=onSnapshot(collection(db,"disciplinePenalties"),snap=>{
+    disciplinePenalties=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderDiscipline();
+  },e=>console.error("Discipline penalties load failed",e));
+}
+async function openDiscipline(){
+  document.querySelector("#disciplineBackdrop").classList.add("show");
+  document.body.style.overflow="hidden";
+  document.querySelector("#addDisciplineBtn").style.display=canEditDiscipline()?"inline-block":"none";
+  if(currentMember?.role==="advisor"){
+    await syncAdvisorRoster();
+  }
+  await loadDisciplineRoster();
+  await loadDisciplineAudits();
+  renderDiscipline();
+}
+function closeDiscipline(){
+  document.querySelector("#disciplineBackdrop").classList.remove("show");
+  document.body.style.overflow="";
+}
+function openDisciplineAdd(){
+  if(!canEditDiscipline()) return;
+  const sel=document.querySelector("#disciplineStudent");
+  sel.innerHTML=disciplineRoster.map(s=>`<option value="${escHtml(s.id)}">${escHtml((s.studentId?s.studentId+" ":"")+s.name)}</option>`).join("");
+  document.querySelector("#disciplineDate").value=new Date().toLocaleDateString("sv-SE",{timeZone:"Asia/Taipei"});
+  document.querySelector("#disciplineError").textContent="";
+  document.querySelector("#disciplineAddBackdrop").classList.add("show");
+}
+async function saveDiscipline(){
+  if(!canEditDiscipline()||!auth.currentUser) return;
+  const studentUid=document.querySelector("#disciplineStudent").value;
+  const student=disciplineRoster.find(s=>s.id===studentUid);
+  const reasonSel=document.querySelector("#disciplineReason");
+  const occurredDate=document.querySelector("#disciplineDate").value;
+  const err=document.querySelector("#disciplineError");
+  if(!student||!occurredDate){err.textContent="請選擇學生與日期。";return;}
+  const btn=document.querySelector("#saveDisciplineBtn");
+  btn.disabled=true;
+  try{
+    const recRef=doc(collection(db,"disciplineRecords"));
+    const auditRef=doc(db,"disciplineAudit",recRef.id);
+    const batch=writeBatch(db);
+    batch.set(recRef,{
+      studentUid,
+      studentId:student.studentId||"",
+      studentName:student.name||"",
+      reasonCode:reasonSel.value,
+      reasonText:reasonSel.options[reasonSel.selectedIndex].text,
+      points:1,
+      occurredDate,
+      createdAt:serverTimestamp()
+    });
+    batch.set(auditRef,{
+      authorUid:auth.currentUser.uid,
+      authorName:currentMember?.name||auth.currentUser.displayName||"",
+      createdAt:serverTimestamp()
+    });
+    await batch.commit();
+    document.querySelector("#disciplineAddBackdrop").classList.remove("show");
+    await ensurePendingPenalties(studentUid);
+    if(currentMember?.role==="advisor") await loadDisciplineAudits();
+  }catch(e){
+    console.error("Discipline save failed",e);
+    err.textContent="記點失敗，請確認權限或稍後再試。";
+  }finally{btn.disabled=false;}
+}
+async function completeDutyPenalty(id){
+  if(!canSuperviseDuty()||!auth.currentUser) return;
+  if(!confirm("確認此同學已完成值日生一週嗎？")) return;
+  try{
+    const batch=writeBatch(db);
+    batch.update(doc(db,"disciplinePenalties",id),{status:"completed",completedAt:serverTimestamp()});
+    batch.set(doc(db,"disciplinePenaltyAudit",id),{
+      completedByUid:auth.currentUser.uid,
+      completedByName:currentMember?.name||auth.currentUser.displayName||"",
+      completedAt:serverTimestamp()
+    },{merge:true});
+    await batch.commit();
+    // 完成一週後扣除 3 點；若剩餘未處理點數仍達 3 點以上，
+    // 自動補上下一週待值日處置。
+    const penalty=disciplinePenalties.find(p=>p.id===id);
+    if(penalty?.studentUid && canEditDiscipline()){
+      setTimeout(()=>ensurePendingPenalties(penalty.studentUid).catch(console.error),300);
+    }
+  }catch(e){console.error(e);alert("完成狀態更新失敗，請確認權限。");}
+}
+
+document.querySelector("#disciplineLink").onclick=e=>{e.preventDefault();openDiscipline();};
+document.querySelector("#disciplineClose").onclick=closeDiscipline;
+document.querySelector("#disciplineBackdrop").onclick=e=>{if(e.target===document.querySelector("#disciplineBackdrop"))closeDiscipline();};
+document.querySelector("#addDisciplineBtn").onclick=openDisciplineAdd;
+document.querySelector("#cancelDisciplineBtn").onclick=()=>document.querySelector("#disciplineAddBackdrop").classList.remove("show");
+document.querySelector("#disciplineAddBackdrop").onclick=e=>{if(e.target===document.querySelector("#disciplineAddBackdrop"))e.currentTarget.classList.remove("show");};
+document.querySelector("#saveDisciplineBtn").onclick=saveDiscipline;
 
 function formatAnnouncementDate(timestamp){
   if(!timestamp?.toDate) return "";
@@ -1604,7 +1955,9 @@ async function initAuth(){
         if(unsubscribeTasks){unsubscribeTasks();unsubscribeTasks=null;}
         if(unsubscribeMailbox){unsubscribeMailbox();unsubscribeMailbox=null;}
         if(unsubscribeMailboxReplies){unsubscribeMailboxReplies();unsubscribeMailboxReplies=null;}
-        classTasks=[]; mailboxMessages=[]; mailboxReplies=[];
+        if(unsubscribeDisciplineRecords){unsubscribeDisciplineRecords();unsubscribeDisciplineRecords=null;}
+        if(unsubscribeDisciplinePenalties){unsubscribeDisciplinePenalties();unsubscribeDisciplinePenalties=null;}
+        classTasks=[]; mailboxMessages=[]; mailboxReplies=[]; disciplineRecords=[]; disciplinePenalties=[]; disciplineRoster=[];
         document.querySelector("#taskList").innerHTML='<div class="task-empty">請先登入以查看待辦事項。</div>';
         if(unsubscribeAnnouncements){unsubscribeAnnouncements();unsubscribeAnnouncements=null;}
         gate.style.display="flex";
@@ -1698,6 +2051,9 @@ async function initAuth(){
         startTasks();
         startMailbox();
         startTimetable();
+        await syncOwnRoster(user,member);
+        if(member.role==="advisor") await syncAdvisorRoster();
+        await startDiscipline();
 
         await loadCalendarEvents(calendarAccessToken);
       }catch(error){
@@ -1732,6 +2088,8 @@ document.addEventListener("keydown",e=>{
   if(e.key==="Escape"){
     if(document.querySelector("#taskModal")?.classList.contains("show")) closeTaskModal();
     if(document.querySelector("#mailboxBackdrop")?.classList.contains("show")) closeMailbox();
+    if(document.querySelector("#disciplineBackdrop")?.classList.contains("show")) closeDiscipline();
+    if(document.querySelector("#disciplineAddBackdrop")?.classList.contains("show")) document.querySelector("#disciplineAddBackdrop").classList.remove("show");
   }
 });
 
