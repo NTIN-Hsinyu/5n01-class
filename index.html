@@ -471,6 +471,137 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 @media(max-width:760px){
   .countdown-edit-row{grid-template-columns:1fr}
 }
+
+/* v8.9.10 班級規範內頁 */
+.rules-panel{
+  width:min(860px,100%);
+  max-height:92vh;
+  display:flex;
+  flex-direction:column;
+}
+.rules-scroll{
+  overflow:auto;
+  padding-right:2px;
+}
+.rules-intro{
+  margin:2px 0 14px;
+  padding:14px 15px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:#fafbfc;
+  font-size:14px;
+  line-height:1.7;
+  color:#52606d;
+}
+.rules-accordion{
+  display:grid;
+  gap:10px;
+}
+.rules-item{
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:#fff;
+  overflow:hidden;
+}
+.rules-summary{
+  width:100%;
+  border:0;
+  background:#fff;
+  padding:15px 16px;
+  text-align:left;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  cursor:pointer;
+  font:inherit;
+}
+.rules-summary-main{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+}
+.rules-emoji{font-size:20px;flex:0 0 auto}
+.rules-title{
+  font-size:17px;
+  font-weight:900;
+  color:var(--text);
+}
+.rules-chevron{
+  font-size:20px;
+  color:var(--muted);
+  transition:transform .2s ease;
+}
+.rules-item.open .rules-chevron{transform:rotate(90deg)}
+.rules-content{
+  display:none;
+  padding:0 16px 16px 48px;
+  font-size:14px;
+  line-height:1.75;
+  color:#44515a;
+}
+.rules-item.open .rules-content{display:block}
+.rules-content ul,
+.rules-content ol{
+  margin:8px 0 0;
+  padding-left:1.25em;
+}
+.rules-content li{margin:6px 0}
+.rules-highlight{
+  margin-top:10px;
+  padding:10px 12px;
+  border-radius:10px;
+  background:#fff8e8;
+  font-weight:700;
+}
+.rules-points{
+  display:grid;
+  gap:8px;
+  margin-top:10px;
+}
+.rules-point{
+  padding:10px 12px;
+  border-radius:10px;
+  background:#f7f9fb;
+  border:1px solid #edf0f3;
+}
+.rules-table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:10px;
+  font-size:14px;
+}
+.rules-table th,.rules-table td{
+  padding:9px 10px;
+  border-bottom:1px solid var(--line);
+  text-align:left;
+}
+.rules-table th{font-weight:900}
+.rules-record-link{
+  display:block;
+  width:100%;
+  margin-top:14px;
+  border:0;
+  border-radius:12px;
+  padding:12px 14px;
+  font:inherit;
+  font-weight:900;
+  cursor:pointer;
+  background:#eef4fb;
+  color:#2f5f8f;
+}
+@media(max-width:760px){
+  .rules-panel{
+    width:100%;
+    max-height:94vh;
+    border-radius:22px 22px 0 0;
+    padding:20px 16px calc(20px + env(safe-area-inset-bottom));
+  }
+  #rulesBackdrop{align-items:flex-end;padding:0}
+  .rules-content{padding-left:16px}
+  .rules-title{font-size:16px}
+}
 </style>
 </head>
 <body><div class="access-gate" id="accessGate"><div class="gate-card"><div class="gate-mark">🏫</div><h2>五護101班｜班級公告欄</h2><p>請使用國立臺南護理專科學校 Google 帳號登入，以查看班級公告與行程。</p><button class="auth-btn primary" id="googleLoginBtn">使用 NTIN Google 帳號登入</button><div class="gate-loading" id="gateLoading">正在確認登入狀態…</div><div class="gate-error" id="gateError"></div></div></div>
@@ -505,13 +636,21 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 </table></div>
 <div class="note">課表由導師統一維護；臨時調課建議仍以公告與班級行事曆通知。</div></section>
 <section id="rules" style="margin-top:22px"><h2>📌 班級規範</h2>
-<a class="link" href="#" id="classRulesLink" style="display:flex;align-items:center;justify-content:space-between;gap:14px;text-decoration:none">
-<div><b>五護101班｜班規</b><div class="meta" style="margin-top:5px">查看班級共同約定、生活規範與重要注意事項</div></div>
-<span style="font-size:20px">›</span></a>
-<div class="note">目前先保留班規入口；之後可連到班規網頁、PDF、Google 文件，或直接做成 PWA 內頁。</div>
-<a class="link discipline-link" href="#" id="disciplineLink">
-<div><b>班規記點</b><div class="meta" style="margin-top:5px">查看全班記點、違規事項與值日處置狀態</div></div>
-<span style="font-size:20px">›</span></a>
+  <a class="link" href="#" id="classRulesLink">
+    <div>
+      <b>五護101班｜班規</b>
+      <div class="meta" style="margin-top:5px">查看班級共同約定、請假、服裝、清潔與記點制度</div>
+    </div>
+    <span style="font-size:20px">›</span>
+  </a>
+
+  <a class="link discipline-link" href="#" id="disciplineLink">
+    <div>
+      <b>班規記點</b>
+      <div class="meta" style="margin-top:5px">查看全班記點、違規事項與值日處置狀態</div>
+    </div>
+    <span style="font-size:20px">›</span>
+  </a>
 </section>
 <section id="links" style="margin-top:22px"><h2>🔗 常用連結</h2><div class="links">
 <a class="link" href="https://www.ntin.edu.tw/" target="_blank" rel="noopener noreferrer">學校首頁</a>
@@ -771,6 +910,176 @@ renderAll();
 
 
 
+
+
+<div class="modal-backdrop" id="rulesBackdrop" role="dialog" aria-modal="true">
+  <div class="modal rules-panel">
+    <div class="member-admin-top">
+      <div>
+        <div class="meta">五護101班</div>
+        <h3>班級規範</h3>
+      </div>
+      <button class="notice-close" id="rulesClose">×</button>
+    </div>
+
+    <div class="rules-scroll">
+      <div class="rules-intro">
+        班級生活以尊重、友善、包容、愛，以及守時、負責為共同原則。
+        請大家共同維持良好的學習秩序與班級生活；若遇特殊情況，可主動向導師或相關幹部說明。
+      </div>
+
+      <div class="rules-accordion">
+
+        <div class="rules-item">
+          <button class="rules-summary" type="button">
+            <span class="rules-summary-main">
+              <span class="rules-emoji">🌱</span>
+              <span class="rules-title">班級共同原則</span>
+            </span>
+            <span class="rules-chevron">›</span>
+          </button>
+          <div class="rules-content">
+            <ul>
+              <li><b>尊重、友善、包容、愛：</b>尊重彼此不同的個性與想法，不以言語、網路或其他方式攻擊、嘲諷或排擠他人。</li>
+              <li><b>守時、負責：</b>對自己的出缺席、課堂秩序、班級事務及環境整潔負責。</li>
+              <li>如涉及辱罵、霸凌、網路攻擊、散布不當內容或其他較嚴重事件，由導師依實際情況處理，不以一般班規記點取代學校相關程序。</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="rules-item">
+          <button class="rules-summary" type="button">
+            <span class="rules-summary-main">
+              <span class="rules-emoji">📚</span>
+              <span class="rules-title">上課與自習秩序</span>
+            </span>
+            <span class="rules-chevron">›</span>
+          </button>
+          <div class="rules-content">
+            <ul>
+              <li>上課前請準時進入教室。</li>
+              <li>上課前 1 分鐘，請主動將手機放置於手機袋。</li>
+              <li>上課座位固定，如有特殊原因需要更換座位，請先詢問老師。</li>
+              <li>上課期間請維持秩序，不交談、嬉鬧或做影響他人學習的事情。</li>
+              <li>經教師或教學品保相關幹部提醒後，仍持續影響秩序者，得依班規登記。</li>
+              <li>如需找老師、跑行政流程或處理文件，請盡量利用自習、下課或空堂時間，不影響正式上課。</li>
+              <li>自習課如需離開教室，請告知班級幹部去向及原因。</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="rules-item">
+          <button class="rules-summary" type="button">
+            <span class="rules-summary-main">
+              <span class="rules-emoji">🗓️</span>
+              <span class="rules-title">請假與出缺席</span>
+            </span>
+            <span class="rules-chevron">›</span>
+          </button>
+          <div class="rules-content">
+            <p>不論假別，皆應遵守學校請假規定，並完成以下事項：</p>
+            <ol>
+              <li><b>先私訊導師告知請假情形</b>，讓老師知道當日無法到校。</li>
+              <li><b>於規定期限內至系統完成請假</b>，並依假別附上正確證明文件。</li>
+              <li><b>於班群告知當日缺席</b>，方便班級掌握出缺席狀況。</li>
+            </ol>
+            <div class="rules-highlight">
+              班群告知除了方便點名，也能讓同學及幹部在繳費、訂餐、發放物品或其他班級事務時知道是否需要協助。
+            </div>
+            <ul>
+              <li><b>事假：</b>原則上應事前完成請假程序；重大臨時事件除外。</li>
+              <li><b>病假：</b>可預知的就醫應事先告知；臨時身體不適無法到校，也應儘早通知老師及班級。</li>
+              <li>相關附件及請假期限依學校現行請假規定辦理。</li>
+            </ul>
+            <div class="rules-highlight">
+              每日由風紀股長、副班代於第一節課開始前確認出席。8:15 前未到校，且未事先請假或於班群告知者，列入班規記點。若有交通事故、臨時身體不適等特殊情況，可向導師說明，由導師確認是否取消記點。
+            </div>
+          </div>
+        </div>
+
+        <div class="rules-item">
+          <button class="rules-summary" type="button">
+            <span class="rules-summary-main">
+              <span class="rules-emoji">👕</span>
+              <span class="rules-title">班服與服裝</span>
+            </span>
+            <span class="rules-chevron">›</span>
+          </button>
+          <div class="rules-content">
+            <table class="rules-table">
+              <thead>
+                <tr><th>星期</th><th>服裝</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>星期一</td><td>制服</td></tr>
+                <tr><td>星期二</td><td>班服；班服尚未發放前穿運動服</td></tr>
+                <tr><td>星期三</td><td>科服</td></tr>
+                <tr><td>星期四</td><td>運動服</td></tr>
+                <tr><td>星期五</td><td>便服</td></tr>
+              </tbody>
+            </table>
+            <div class="rules-highlight">
+              如遇學校活動、實驗課程或其他特殊規定，依當日公告調整。
+            </div>
+          </div>
+        </div>
+
+        <div class="rules-item">
+          <button class="rules-summary" type="button">
+            <span class="rules-summary-main">
+              <span class="rules-emoji">🧹</span>
+              <span class="rules-title">清潔與環境</span>
+            </span>
+            <span class="rules-chevron">›</span>
+          </button>
+          <div class="rules-content">
+            <ul>
+              <li>維持校園及班級環境整潔是每位同學共同的責任。</li>
+              <li>教室及周遭區域清潔應於<b>上午 8:15 前</b>完成。</li>
+              <li>外掃廁所等指定區域應於<b>中午 13:00 前</b>完成。</li>
+              <li>期中考後依班級安排更換清潔區域。</li>
+              <li>每日清潔由衛生、副衛生股長協助點名及確認完成情形。</li>
+              <li>如有特殊原因無法完成當日清潔，應事先告知負責幹部並安排補做。</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="rules-item">
+          <button class="rules-summary" type="button">
+            <span class="rules-summary-main">
+              <span class="rules-emoji">📌</span>
+              <span class="rules-title">班規記點制度</span>
+            </span>
+            <span class="rules-chevron">›</span>
+          </button>
+          <div class="rules-content">
+            <p>以下事項每次記 <b>1 點</b>：</p>
+            <div class="rules-points">
+              <div class="rules-point"><b>① 班級事務</b><br>班費、同意書或指定資料逾期，經提醒後仍未完成，需要再次催繳。</div>
+              <div class="rules-point"><b>② 出缺席</b><br>8:15 前未到校，且未完成請假或未於班群告知。</div>
+              <div class="rules-point"><b>③ 課堂秩序</b><br>上課交談、嬉鬧或其他影響秩序行為，經提醒後仍持續。</div>
+            </div>
+
+            <div class="rules-highlight">
+              每累積 <b>3 點</b>，擔任值日生一週。值日尚未完成前，點數仍持續累積，因此可能出現 4/3、5/3、6/3 等情況。
+            </div>
+
+            <ul>
+              <li>完成一週值日並經衛生股長確認後，扣除 3 點。</li>
+              <li><b>記點：</b>由導師或導師指定之幹部登記。</li>
+              <li><b>值日確認：</b>由衛生股長負責監督及確認。</li>
+              <li><b>記點疑義：</b>可向導師提出，由導師確認或撤銷。</li>
+              <li>班級幹部依既定班規協助紀錄，不自行增加違規項目或決定額外處分；如遇無法判斷之情況，交由導師確認。</li>
+            </ul>
+
+            <button class="rules-record-link" id="rulesToDiscipline" type="button">查看全班班規記點 →</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="modal-backdrop" id="countdownEditBackdrop" role="dialog" aria-modal="true">
   <div class="modal">
@@ -2029,6 +2338,33 @@ async function completeDutyPenalty(id){
   }catch(e){console.error(e);alert("完成狀態更新失敗，請確認權限。");}
 }
 
+
+function openClassRules(){
+  document.querySelector("#rulesBackdrop").classList.add("show");
+  document.body.style.overflow="hidden";
+}
+function closeClassRules(){
+  document.querySelector("#rulesBackdrop").classList.remove("show");
+  document.body.style.overflow="";
+}
+document.querySelector("#classRulesLink").onclick=e=>{
+  e.preventDefault();
+  openClassRules();
+};
+document.querySelector("#rulesClose").onclick=closeClassRules;
+document.querySelector("#rulesBackdrop").onclick=e=>{
+  if(e.target===document.querySelector("#rulesBackdrop")) closeClassRules();
+};
+document.querySelectorAll(".rules-summary").forEach(btn=>{
+  btn.onclick=()=>{
+    btn.closest(".rules-item")?.classList.toggle("open");
+  };
+});
+document.querySelector("#rulesToDiscipline").onclick=()=>{
+  closeClassRules();
+  openDiscipline();
+};
+
 document.querySelector("#disciplineLink").onclick=e=>{e.preventDefault();openDiscipline();};
 document.querySelector("#disciplineClose").onclick=closeDiscipline;
 document.querySelector("#disciplineBackdrop").onclick=e=>{if(e.target===document.querySelector("#disciplineBackdrop"))closeDiscipline();};
@@ -2461,6 +2797,7 @@ document.addEventListener("keydown",e=>{
     if(document.querySelector("#taskModal")?.classList.contains("show")) closeTaskModal();
     if(document.querySelector("#mailboxBackdrop")?.classList.contains("show")) closeMailbox();
     if(document.querySelector("#disciplineBackdrop")?.classList.contains("show")) closeDiscipline();
+    if(document.querySelector("#rulesBackdrop")?.classList.contains("show")) closeClassRules();
     if(document.querySelector("#disciplineAddBackdrop")?.classList.contains("show")) document.querySelector("#disciplineAddBackdrop").classList.remove("show");
   }
 });
