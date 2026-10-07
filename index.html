@@ -395,6 +395,18 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
   #disciplineBackdrop,#disciplineAddBackdrop{align-items:flex-end;padding:0}
   .discipline-row{grid-template-columns:1fr}
 }
+
+.discipline-delete{
+  border:1px solid #e4c5c0;
+  background:#fff7f5;
+  color:#a34f43;
+  border-radius:8px;
+  padding:5px 8px;
+  font-size:12px;
+  font-weight:800;
+  cursor:pointer;
+  margin-left:8px;
+}
 </style>
 </head>
 <body><div class="access-gate" id="accessGate"><div class="gate-card"><div class="gate-mark">🏫</div><h2>五護101班｜班級公告欄</h2><p>請使用國立臺南護理專科學校 Google 帳號登入，以查看班級公告與行程。</p><button class="auth-btn primary" id="googleLoginBtn">使用 NTIN Google 帳號登入</button><div class="gate-loading" id="gateLoading">正在確認登入狀態…</div><div class="gate-error" id="gateError"></div></div></div>
@@ -1558,7 +1570,9 @@ function renderDiscipline(){
       const audit=disciplineAudits.get(r.id);
       const privateLine=(currentMember?.role==="advisor" && audit)
         ?`<div class="discipline-private">登記人：${escHtml(audit.authorName||"")}</div>`:"";
-      return `<div class="discipline-history-item">${escHtml(formatDisciplineDate(r.occurredDate))}　${escHtml(r.reasonText||"")}　+1${privateLine}</div>`;
+      const deleteBtn=(currentMember?.role==="advisor")
+        ?`<button class="discipline-delete" data-delete-record="${escHtml(r.id)}">刪除</button>`:"";
+      return `<div class="discipline-history-item">${escHtml(formatDisciplineDate(r.occurredDate))}　${escHtml(r.reasonText||"")}　+1${deleteBtn}${privateLine}</div>`;
     }).join(""):'<div class="discipline-detail">目前無記點紀錄</div>';
 
     const pendingHtml=pending.map(p=>
@@ -1578,6 +1592,9 @@ function renderDiscipline(){
   });
   box.querySelectorAll("[data-penalty]").forEach(btn=>
     btn.onclick=()=>completeDutyPenalty(btn.dataset.penalty)
+  );
+  box.querySelectorAll("[data-delete-record]").forEach(btn=>
+    btn.onclick=()=>deleteDisciplineRecord(btn.dataset.deleteRecord)
   );
 }
 async function startDiscipline(){
@@ -1684,6 +1701,52 @@ async function saveDiscipline(){
     err.textContent="記點失敗，請確認權限或稍後再試。";
   }finally{btn.disabled=false;}
 }
+
+async function reconcilePendingPenalties(studentUid){
+  if(currentMember?.role!=="advisor") return;
+
+  const required=requiredPendingPenalties(studentUid);
+  const pending=penaltyStatusForStudent(studentUid)
+    .filter(p=>p.status==="pending")
+    .sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+
+  if(pending.length>required){
+    const extra=pending.slice(0,pending.length-required);
+    const batch=writeBatch(db);
+    extra.forEach(p=>{
+      batch.delete(doc(db,"disciplinePenalties",p.id));
+      batch.delete(doc(db,"disciplinePenaltyAudit",p.id));
+    });
+    await batch.commit();
+  }
+}
+
+async function deleteDisciplineRecord(recordId){
+  if(currentMember?.role!=="advisor" || !auth.currentUser) return;
+
+  const record=disciplineRecords.find(r=>r.id===recordId);
+  if(!record) return;
+
+  const label=`${record.studentName||"此學生"}｜${formatDisciplineDate(record.occurredDate)}｜${record.reasonText||"記點"}`;
+  if(!confirm(`確定要刪除這筆記點嗎？\n\n${label}\n\n刪除後會重新計算目前點數與待值日週數。`)) return;
+
+  try{
+    const batch=writeBatch(db);
+    batch.delete(doc(db,"disciplineRecords",recordId));
+    batch.delete(doc(db,"disciplineAudit",recordId));
+    await batch.commit();
+
+    disciplineRecords=disciplineRecords.filter(r=>r.id!==recordId);
+    disciplineAudits.delete(recordId);
+
+    await reconcilePendingPenalties(record.studentUid);
+    renderDiscipline();
+  }catch(error){
+    console.error("Discipline delete failed:",error);
+    alert("刪除記點失敗，請稍後再試。");
+  }
+}
+
 async function completeDutyPenalty(id){
   if(!canSuperviseDuty()||!auth.currentUser) return;
   if(!confirm("確認此同學已完成值日生一週嗎？")) return;
