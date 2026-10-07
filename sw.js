@@ -1,4 +1,4 @@
-const CACHE = 'class101-v8-9-10-rules';
+const CACHE = 'class101-v8-9-10-1-rules-compact';
 const ASSETS = ['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png','./apple-touch-icon.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));

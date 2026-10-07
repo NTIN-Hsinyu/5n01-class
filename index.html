@@ -602,6 +602,12 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
   .rules-content{padding-left:16px}
   .rules-title{font-size:16px}
 }
+
+.rules-entry-desc{
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
 </style>
 </head>
 <body><div class="access-gate" id="accessGate"><div class="gate-card"><div class="gate-mark">🏫</div><h2>五護101班｜班級公告欄</h2><p>請使用國立臺南護理專科學校 Google 帳號登入，以查看班級公告與行程。</p><button class="auth-btn primary" id="googleLoginBtn">使用 NTIN Google 帳號登入</button><div class="gate-loading" id="gateLoading">正在確認登入狀態…</div><div class="gate-error" id="gateError"></div></div></div>
@@ -639,7 +645,7 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
   <a class="link" href="#" id="classRulesLink">
     <div>
       <b>五護101班｜班規</b>
-      <div class="meta" style="margin-top:5px">查看班級共同約定、請假、服裝、清潔與記點制度</div>
+      <div class="meta rules-entry-desc" style="margin-top:5px">查看班規、請假、服裝與清潔規範</div>
     </div>
     <span style="font-size:20px">›</span>
   </a>
