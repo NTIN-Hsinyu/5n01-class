@@ -914,9 +914,17 @@ renderAll();
             <label>待辦類型
               <select id="announcementTaskType"><option value="todo">待辦</option><option value="assignment">作業</option><option value="quiz">小考</option></select>
             </label>
-            <label>日期／截止時間
+            <label id="announcementTaskDueWrap">截止時間
               <input id="announcementTaskDue" type="datetime-local">
             </label>
+            <div id="announcementTaskQuizTimeWrap" style="display:none">
+              <label>小考開始時間
+                <input id="announcementTaskQuizStart" type="datetime-local">
+              </label>
+              <label style="margin-top:10px">小考結束時間
+                <input id="announcementTaskQuizEnd" type="datetime-local">
+              </label>
+            </div>
             <label>重複
               <select id="announcementTaskRepeat"><option value="none">不重複</option><option value="weekly">每週</option><option value="biweekly">每兩週</option><option value="monthly">每月</option></select>
             </label>
@@ -1194,9 +1202,17 @@ renderAll();
       <label>說明
         <textarea id="taskNote" maxlength="300" placeholder="補充繳交方式、範圍或注意事項"></textarea>
       </label>
-      <label>第一次截止時間
+      <label id="taskDueWrap">截止時間
         <input id="taskDue" type="datetime-local">
       </label>
+      <div id="taskQuizTimeWrap" style="display:none">
+        <label>小考開始時間
+          <input id="taskQuizStart" type="datetime-local">
+        </label>
+        <label style="margin-top:10px">小考結束時間
+          <input id="taskQuizEnd" type="datetime-local">
+        </label>
+      </div>
       <label>重複
         <select id="taskRepeat"><option value="none">不重複</option><option value="weekly">每週</option><option value="biweekly">每兩週</option><option value="monthly">每月</option></select>
       </label>
@@ -1218,7 +1234,7 @@ renderAll();
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, reauthenticateWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-import { getFirestore, doc, getDoc, getDocs, setDoc, collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, getDocs, setDoc, collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, deleteField, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 const firebaseConfig={apiKey:"AIzaSyDriaciyyXKRP6LE5emJDnvwPDA5QucUW0",authDomain:"ntin115-5n01.firebaseapp.com",projectId:"ntin115-5n01",storageBucket:"ntin115-5n01.firebasestorage.app",messagingSenderId:"145636669643",appId:"1:145636669643:web:827aa85da0cc7942eec34e"};
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
@@ -1745,28 +1761,116 @@ function timestampToLocalInput(ts){
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 function repeatLabel(r){return r==="weekly"?"每週":r==="biweekly"?"每兩週":r==="monthly"?"每月":"";}
-function addMonthsClamped(base,n){const d=new Date(base),day=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+n);const last=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();d.setDate(Math.min(day,last));return d;}
-function occurrenceDue(task,now=new Date()){
- const base=task.dueAt?.toDate?task.dueAt.toDate():new Date(task.dueAt);
- if(Number.isNaN(base.getTime())||!task.repeat||task.repeat==="none"||base>now)return base;
- if(task.repeat==="weekly"||task.repeat==="biweekly"){const step=(task.repeat==="weekly"?7:14)*86400000;return new Date(base.getTime()+Math.max(0,Math.floor((now-base)/step))*step);}
- if(task.repeat==="monthly"){let n=(now.getFullYear()-base.getFullYear())*12+now.getMonth()-base.getMonth();let d=addMonthsClamped(base,Math.max(0,n));if(d>now&&n>0)d=addMonthsClamped(base,n-1);return d;} return base;
+function addMonthsClamped(base,n){
+  const d=new Date(base),day=d.getDate();
+  d.setDate(1); d.setMonth(d.getMonth()+n);
+  const last=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
+  d.setDate(Math.min(day,last));
+  return d;
 }
-function occurrenceKey(task){const d=occurrenceDue(task);return d&&!Number.isNaN(d.getTime())?d.toISOString().slice(0,16):"unknown";}
-function formatTaskDue(task){const d=occurrenceDue(task);if(!d||Number.isNaN(d.getTime()))return "未設定";const time=(d.getHours()||d.getMinutes())?` ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`:"";const rr=repeatLabel(task.repeat);return `${d.getMonth()+1}/${d.getDate()}${time}${rr?` · ${rr}`:""}${d<Date.now()?" 已截止":""}`;}
+function asDate(v){
+  if(!v) return null;
+  const d=v?.toDate ? v.toDate() : new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+function taskBaseWindow(task){
+  if(task.type==="quiz"){
+    const start=asDate(task.startAt)||asDate(task.dueAt);
+    const end=asDate(task.endAt)||asDate(task.dueAt)||start;
+    if(!start||!end) return null;
+    return {start,end:end<start?start:end};
+  }
+  const due=asDate(task.dueAt);
+  return due?{start:due,end:due}:null;
+}
+function occurrenceWindow(task,now=new Date()){
+  const base=taskBaseWindow(task);
+  if(!base) return null;
+  const repeat=task.repeat||"none";
+  if(repeat==="none") return base;
+
+  let start=new Date(base.start), end=new Date(base.end);
+
+  // 已過期的重複事項直接推到下一次，不顯示「已截止」舊項目。
+  if(end>=now) return {start,end};
+
+  if(repeat==="weekly"||repeat==="biweekly"){
+    const step=(repeat==="weekly"?7:14)*86400000;
+    const k=Math.max(1,Math.ceil((now.getTime()-end.getTime())/step));
+    return {
+      start:new Date(start.getTime()+k*step),
+      end:new Date(end.getTime()+k*step)
+    };
+  }
+
+  if(repeat==="monthly"){
+    let k=Math.max(1,(now.getFullYear()-end.getFullYear())*12+now.getMonth()-end.getMonth());
+    let nextStart=addMonthsClamped(start,k);
+    let nextEnd=addMonthsClamped(end,k);
+    while(nextEnd<now){
+      k++;
+      nextStart=addMonthsClamped(start,k);
+      nextEnd=addMonthsClamped(end,k);
+    }
+    return {start:nextStart,end:nextEnd};
+  }
+
+  return {start,end};
+}
+function occurrenceDue(task,now=new Date()){
+  const w=occurrenceWindow(task,now);
+  if(!w) return null;
+  return task.type==="quiz" ? w.start : w.end;
+}
+function occurrenceKey(task,now=new Date()){
+  const w=occurrenceWindow(task,now);
+  if(!w) return "unknown";
+  const keyDate=task.type==="quiz"?w.start:w.end;
+  return keyDate.toISOString().slice(0,16);
+}
+function taskIsExpired(task,now=new Date()){
+  const base=taskBaseWindow(task);
+  if(!base) return false;
+  if((task.repeat||"none")!=="none") return false;
+  return base.end<now;
+}
+function fmtMDHM(d){
+  const pad=n=>String(n).padStart(2,"0");
+  return `${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function fmtHM(d){
+  const pad=n=>String(n).padStart(2,"0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function formatTaskDue(task,now=new Date()){
+  const w=occurrenceWindow(task,now);
+  if(!w) return "未設定";
+  const rr=repeatLabel(task.repeat);
+  if(task.type==="quiz"){
+    const sameDay=w.start.getFullYear()===w.end.getFullYear()
+      && w.start.getMonth()===w.end.getMonth()
+      && w.start.getDate()===w.end.getDate();
+    const span=sameDay
+      ? `${fmtMDHM(w.start)}–${fmtHM(w.end)}`
+      : `${fmtMDHM(w.start)}–${fmtMDHM(w.end)}`;
+    return `${span}${rr?` · ${rr}`:""}`;
+  }
+  return `截止：${fmtMDHM(w.end)}${rr?` · ${rr}`:""}`;
+}
 function taskTypeLabel(type){ return type==="quiz"?"小考":type==="assignment"?"作業":"待辦"; }
 
 
 function getUrgentTask(){
   const now=new Date();
   const candidates=classTasks.map(task=>{
-    const due=occurrenceDue(task,now);
-    return {task,due};
+    const window=occurrenceWindow(task,now);
+    return {task,window};
   }).filter(x=>{
-    if(!x.due||Number.isNaN(x.due.getTime())) return false;
-    const key=`class101_task_${x.task.id}_${occurrenceKey(x.task)}_done`;
-    return x.due>=now && localStorage.getItem(key)!=="1";
-  }).sort((a,b)=>a.due-b.due);
+    if(!x.window) return false;
+    if(taskIsExpired(x.task,now)) return false;
+    const key=`class101_task_${x.task.id}_${occurrenceKey(x.task,now)}_done`;
+    return x.window.end>=now && localStorage.getItem(key)!=="1";
+  }).sort((a,b)=>a.window.start-b.window.start);
   return candidates[0]||null;
 }
 
@@ -1790,7 +1894,7 @@ function renderUrgentTask(){
   banner.style.display="";
   title.textContent=`⚠️ 重要待辦｜${task.title||"未命名待辦"}`;
   note.textContent=`${taskTypeLabel(task.type)}｜${task.note||"請於截止時間前完成。"}`;
-  deadline.textContent=`截止：${formatTaskDue(task)}`;
+  deadline.textContent=task.type==="quiz"?`時間：${formatTaskDue(task)}`:formatTaskDue(task);
   btn.classList.remove("completed");
   btn.textContent="已完成";
   btn.onclick=()=>{
@@ -1802,11 +1906,12 @@ function renderUrgentTask(){
 
 function renderTasks(){
   const box=document.querySelector("#taskList");
-  if(!classTasks.length){box.innerHTML='<div class="task-empty">目前沒有待辦事項。</div>';return;}
-  const sorted=[...classTasks].sort((a,b)=>{
-    const ad=occurrenceDue(a)?.getTime?.()??0;
-    const bd=occurrenceDue(b)?.getTime?.()??0;
-    return ad-bd;
+  const now=new Date();
+  const visibleTasks=classTasks.filter(task=>!taskIsExpired(task,now) && occurrenceWindow(task,now));
+  if(!visibleTasks.length){box.innerHTML='<div class="task-empty">目前沒有待辦事項。</div>';return;}
+  const sorted=[...visibleTasks].sort((a,b)=>{
+    const aw=occurrenceWindow(a,now), bw=occurrenceWindow(b,now);
+    return (aw?.start?.getTime?.()??0)-(bw?.start?.getTime?.()??0);
   });
   box.innerHTML="";
   sorted.forEach(t=>{
@@ -1831,8 +1936,14 @@ function renderTasks(){
   box.querySelectorAll("[data-delete-task]").forEach(btn=>btn.onclick=()=>deleteTaskById(btn.dataset.deleteTask));
 }
 
+let taskExpiryTimer=null;
 function startTasks(){
   if(unsubscribeTasks) unsubscribeTasks();
+  if(taskExpiryTimer) clearInterval(taskExpiryTimer);
+  taskExpiryTimer=setInterval(()=>{
+    renderTasks();
+    renderUrgentTask();
+  },60000);
   const q=query(collection(db,"tasks"));
   unsubscribeTasks=onSnapshot(q,snap=>{
     classTasks=snap.docs.map(d=>({id:d.id,...d.data()}));
@@ -1844,6 +1955,11 @@ function startTasks(){
   });
 }
 
+function updateTaskTimeFields(){
+  const isQuiz=document.querySelector("#taskType").value==="quiz";
+  document.querySelector("#taskDueWrap").style.display=isQuiz?"none":"block";
+  document.querySelector("#taskQuizTimeWrap").style.display=isQuiz?"block":"none";
+}
 function openTaskModal(task=null){
   if(!canEditTasks()) return;
   if(task && !canManageTask(task)) return;
@@ -1854,7 +1970,10 @@ function openTaskModal(task=null){
   document.querySelector("#taskTitle").value=task?.title||"";
   document.querySelector("#taskNote").value=task?.note||"";
   document.querySelector("#taskDue").value=timestampToLocalInput(task?.dueAt);
+  document.querySelector("#taskQuizStart").value=timestampToLocalInput(task?.startAt||task?.dueAt);
+  document.querySelector("#taskQuizEnd").value=timestampToLocalInput(task?.endAt);
   document.querySelector("#taskRepeat").value=task?.repeat||"none";
+  updateTaskTimeFields();
   document.querySelector("#taskError").style.display="none";
   document.querySelector("#taskModal").classList.add("show");
 }
@@ -1866,18 +1985,40 @@ async function saveTask(){
   const note=document.querySelector("#taskNote").value.trim();
   const type=document.querySelector("#taskType").value;
   const due=document.querySelector("#taskDue").value;
+  const quizStart=document.querySelector("#taskQuizStart").value;
+  const quizEnd=document.querySelector("#taskQuizEnd").value;
   const repeat=document.querySelector("#taskRepeat").value;
-  if(!title||!due){err.textContent="請填寫標題與日期／截止時間。";err.style.display="block";return;}
+
+  if(!title){
+    err.textContent="請填寫標題。"; err.style.display="block"; return;
+  }
+  if(type==="quiz"){
+    if(!quizStart||!quizEnd){
+      err.textContent="小考請設定開始與結束時間。"; err.style.display="block"; return;
+    }
+    if(new Date(quizEnd)<=new Date(quizStart)){
+      err.textContent="小考結束時間需晚於開始時間。"; err.style.display="block"; return;
+    }
+  }else if(!due){
+    err.textContent="請設定截止時間。"; err.style.display="block"; return;
+  }
+
   if(!canEditTasks()||!auth.currentUser)return;
   btn.disabled=true;
   try{
+    const common={title,note,type,repeat,updatedAt:serverTimestamp()};
+    const timeFields=type==="quiz"
+      ?{startAt:new Date(quizStart),endAt:new Date(quizEnd),dueAt:deleteField()}
+      :{dueAt:new Date(due),startAt:deleteField(),endAt:deleteField()};
+
     if(editingTaskId){
-      const old=classTasks.find(t=>t.id===editingTaskId);
-      await updateDoc(doc(db,"tasks",editingTaskId),{title,note,type,dueAt:new Date(due),repeat,updatedAt:serverTimestamp()});
-      // 若這是公告連動待辦，待辦標題變更不反向修改公告；避免意外改公告正文。
+      await updateDoc(doc(db,"tasks",editingTaskId),{...common,...timeFields});
     }else{
+      const createTimeFields=type==="quiz"
+        ?{startAt:new Date(quizStart),endAt:new Date(quizEnd)}
+        :{dueAt:new Date(due)};
       await addDoc(collection(db,"tasks"),{
-        title,note,type,dueAt:new Date(due),repeat,
+        title,note,type,repeat,...createTimeFields,
         authorUid:auth.currentUser.uid,
         authorName:currentMember.name||auth.currentUser.displayName||"",
         sourceAnnouncementId:null,
@@ -1885,8 +2026,11 @@ async function saveTask(){
       });
     }
     closeTaskModal();
-  }catch(e){console.error(e);err.textContent="待辦儲存失敗，請確認 Firestore 規則。";err.style.display="block";}
-  finally{btn.disabled=false;}
+  }catch(e){
+    console.error(e);
+    err.textContent="待辦儲存失敗，請確認 Firestore 規則。";
+    err.style.display="block";
+  }finally{btn.disabled=false;}
 }
 
 async function deleteTaskById(id){
@@ -1900,8 +2044,10 @@ async function deleteTaskById(id){
 
 document.querySelector("#addTaskBtn").onclick=()=>openTaskModal();
 document.querySelector("#cancelTaskBtn").onclick=closeTaskModal;
+document.querySelector("#taskType").onchange=updateTaskTimeFields;
 document.querySelector("#saveTaskBtn").onclick=saveTask;
 document.querySelector("#taskModal").onclick=e=>{if(e.target===document.querySelector("#taskModal"))closeTaskModal();};
+document.querySelector("#announcementTaskType").onchange=updateAnnouncementTaskTimeFields;
 document.querySelector("#announcementAddTask").onchange=e=>{
   document.querySelector("#announcementTaskFields").classList.toggle("show",e.target.checked);
 };
@@ -2487,6 +2633,12 @@ function updateAnnouncementControls(member){
   btn.style.display=canPublishAnnouncements()?"inline-block":"none";
 }
 
+function updateAnnouncementTaskTimeFields(){
+  const isQuiz=document.querySelector("#announcementTaskType").value==="quiz";
+  document.querySelector("#announcementTaskDueWrap").style.display=isQuiz?"none":"block";
+  document.querySelector("#announcementTaskQuizTimeWrap").style.display=isQuiz?"block":"none";
+}
+
 function openAnnouncementModal(notice=null){
   if(!canPublishAnnouncements()) return;
   if(notice && !canManageNotice(notice)) return;
@@ -2503,6 +2655,9 @@ function openAnnouncementModal(notice=null){
   document.querySelector("#announcementTaskFields").classList.toggle("show",!!linkedTask);
   document.querySelector("#announcementTaskType").value=linkedTask?.type||"todo";
   document.querySelector("#announcementTaskDue").value=timestampToLocalInput(linkedTask?.dueAt);
+  document.querySelector("#announcementTaskQuizStart").value=timestampToLocalInput(linkedTask?.startAt||linkedTask?.dueAt);
+  document.querySelector("#announcementTaskQuizEnd").value=timestampToLocalInput(linkedTask?.endAt);
+  updateAnnouncementTaskTimeFields();
   document.querySelector("#announcementTaskRepeat").value=linkedTask?.repeat||"none";
   document.querySelector("#announcementTaskNote").value=linkedTask?.note||"";
   document.querySelector("#announcementError").style.display="none";
@@ -2519,14 +2674,23 @@ async function publishAnnouncement(){
   const addTask=document.querySelector("#announcementAddTask").checked;
   const taskType=document.querySelector("#announcementTaskType").value;
   const taskDueValue=document.querySelector("#announcementTaskDue").value;
+  const taskQuizStartValue=document.querySelector("#announcementTaskQuizStart").value;
+  const taskQuizEndValue=document.querySelector("#announcementTaskQuizEnd").value;
   const taskRepeat=document.querySelector("#announcementTaskRepeat").value;
   const taskNote=document.querySelector("#announcementTaskNote").value.trim();
 
   if(!title||!content){
     errorBox.textContent="請填寫公告標題與內容。"; errorBox.style.display="block"; return;
   }
-  if(addTask && !taskDueValue){
-    errorBox.textContent="勾選加入待辦後，請設定日期或截止時間。"; errorBox.style.display="block"; return;
+  if(addTask && taskType==="quiz"){
+    if(!taskQuizStartValue||!taskQuizEndValue){
+      errorBox.textContent="小考請設定開始與結束時間。"; errorBox.style.display="block"; return;
+    }
+    if(new Date(taskQuizEndValue)<=new Date(taskQuizStartValue)){
+      errorBox.textContent="小考結束時間需晚於開始時間。"; errorBox.style.display="block"; return;
+    }
+  }else if(addTask && !taskDueValue){
+    errorBox.textContent="請設定截止時間。"; errorBox.style.display="block"; return;
   }
   if(!canPublishAnnouncements()||!auth.currentUser){
     errorBox.textContent="目前帳號沒有發布公告的權限。"; errorBox.style.display="block"; return;
@@ -2549,11 +2713,10 @@ async function publishAnnouncement(){
 
     const existingTask=classTasks.find(t=>t.sourceAnnouncementId===announcementId);
     if(addTask){
-      const payload={
+      const basePayload={
         title,
         note:taskNote,
         type:taskType,
-        dueAt:new Date(taskDueValue),
         repeat:taskRepeat,
         sourceAnnouncementId:announcementId,
         authorUid:auth.currentUser.uid,
@@ -2561,9 +2724,15 @@ async function publishAnnouncement(){
         updatedAt:serverTimestamp()
       };
       if(existingTask){
-        await updateDoc(doc(db,"tasks",existingTask.id),payload);
+        const timePayload=taskType==="quiz"
+          ?{startAt:new Date(taskQuizStartValue),endAt:new Date(taskQuizEndValue),dueAt:deleteField()}
+          :{dueAt:new Date(taskDueValue),startAt:deleteField(),endAt:deleteField()};
+        await updateDoc(doc(db,"tasks",existingTask.id),{...basePayload,...timePayload});
       }else{
-        await addDoc(collection(db,"tasks"),{...payload,createdAt:serverTimestamp()});
+        const timePayload=taskType==="quiz"
+          ?{startAt:new Date(taskQuizStartValue),endAt:new Date(taskQuizEndValue)}
+          :{dueAt:new Date(taskDueValue)};
+        await addDoc(collection(db,"tasks"),{...basePayload,...timePayload,createdAt:serverTimestamp()});
       }
     }else if(existingTask && canManageTask(existingTask)){
       await deleteDoc(doc(db,"tasks",existingTask.id));
@@ -2577,6 +2746,8 @@ async function publishAnnouncement(){
     document.querySelector("#announcementAddTask").checked=false;
     document.querySelector("#announcementTaskFields").classList.remove("show");
     document.querySelector("#announcementTaskDue").value="";
+    document.querySelector("#announcementTaskQuizStart").value="";
+    document.querySelector("#announcementTaskQuizEnd").value="";
     document.querySelector("#announcementTaskRepeat").value="none";
     document.querySelector("#announcementTaskNote").value="";
     document.querySelector("#announcementModal").classList.remove("show");
