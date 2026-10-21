@@ -1231,22 +1231,91 @@ renderAll();
 <p>這裡會依待辦類型顯示不同文字，例如「作業是否已繳交」、「餐費是否已繳交」、「同意書是否已交回」。</p><div class="due">⏰ 9/18 23:59 前完成</div>
 <div class="modal-actions"><button class="done" id="doneBtn">✓ 已完成</button><button class="later" id="laterBtn">還沒，稍後提醒</button></div>
 <button class="dontask" id="closeBtn">先關閉這次提醒</button></div></div>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, reauthenticateWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithCredential, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, getDocs, setDoc, collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, deleteField, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 const firebaseConfig={apiKey:"AIzaSyDriaciyyXKRP6LE5emJDnvwPDA5QucUW0",authDomain:"ntin115-5n01.firebaseapp.com",projectId:"ntin115-5n01",storageBucket:"ntin115-5n01.firebasestorage.app",messagingSenderId:"145636669643",appId:"1:145636669643:web:827aa85da0cc7942eec34e"};
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
 const db=getFirestore(app);
-const provider=new GoogleAuthProvider();
-provider.setCustomParameters({prompt:"select_account"});
+// v8.9.12：改用 Google Identity Services (GIS) 取得 Google OAuth access token，
+// 再用 signInWithCredential() 登入 Firebase。
+// 這樣不再經過 firebaseapp.com 的 popup/redirect helper，可避開 iOS Safari
+// 「Unable to process request due to missing initial state」問題。
+//
+// 部署前請把下方值換成 Google Cloud Console / Google Auth Platform 的
+// Web application OAuth 2.0 Client ID（格式：xxxx.apps.googleusercontent.com）。
+const GOOGLE_WEB_CLIENT_ID="145636669643-lnakcs2kj6imle4m5ohe7idlsh2vqpd0.apps.googleusercontent.com";
+const GOOGLE_LOGIN_SCOPE="openid email profile https://www.googleapis.com/auth/calendar.events.readonly";
+
 const TEST_STUDENT_EMAIL="sherry.hychao@gmail.com";
 function isAllowedLoginEmail(email=""){
   email=String(email).toLowerCase();
   return email.endsWith("@ntin.edu.tw") || email===TEST_STUDENT_EMAIL;
 }
-provider.addScope("https://www.googleapis.com/auth/calendar.events.readonly");
+
+function googleClientConfigured(){
+  return GOOGLE_WEB_CLIENT_ID
+    && !GOOGLE_WEB_CLIENT_ID.startsWith("PASTE_")
+    && GOOGLE_WEB_CLIENT_ID.endsWith(".apps.googleusercontent.com");
+}
+
+function waitForGoogleIdentityServices(timeoutMs=10000){
+  return new Promise((resolve,reject)=>{
+    const started=Date.now();
+    const tick=()=>{
+      if(window.google?.accounts?.oauth2) return resolve();
+      if(Date.now()-started>timeoutMs) return reject(new Error("Google Identity Services 載入逾時"));
+      setTimeout(tick,100);
+    };
+    tick();
+  });
+}
+
+async function requestGoogleAccessToken({hint="",prompt="select_account"}={}){
+  if(!googleClientConfigured()){
+    const err=new Error("尚未設定 GOOGLE_WEB_CLIENT_ID");
+    err.code="gis/client-id-not-configured";
+    throw err;
+  }
+  await waitForGoogleIdentityServices();
+
+  return new Promise((resolve,reject)=>{
+    const client=google.accounts.oauth2.initTokenClient({
+      client_id:GOOGLE_WEB_CLIENT_ID,
+      scope:GOOGLE_LOGIN_SCOPE,
+      hint:hint||undefined,
+      callback:(response)=>{
+        if(response?.error){
+          const err=new Error(response.error_description||response.error);
+          err.code=`gis/${response.error}`;
+          reject(err);
+          return;
+        }
+        if(!response?.access_token){
+          const err=new Error("Google 未回傳 access token");
+          err.code="gis/no-access-token";
+          reject(err);
+          return;
+        }
+        resolve(response.access_token);
+      },
+      error_callback:(error)=>{
+        const err=new Error(error?.message||error?.type||"Google 登入視窗無法開啟");
+        err.code=`gis/${error?.type||"popup-error"}`;
+        reject(err);
+      }
+    });
+    client.requestAccessToken({prompt});
+  });
+}
+
+async function signInFirebaseWithGoogleAccessToken(accessToken){
+  const firebaseCredential=GoogleAuthProvider.credential(null,accessToken);
+  return await signInWithCredential(auth,firebaseCredential);
+}
 
 const CALENDAR_ID="c_classroom8b940f16@group.calendar.google.com";
 let calendarAccessToken=null;
@@ -1587,20 +1656,26 @@ async function loadCalendarEvents(token){
     box.innerHTML='<div class="note">行事曆授權已過期。<button class="auth-btn" id="calendarReconnectBtn" style="margin-top:10px">重新授權行事曆</button></div>';
     document.querySelector("#calendarReconnectBtn").onclick=async()=>{
       try{
-        const result=await reauthenticateWithPopup(auth.currentUser,provider);
-        const credential=GoogleAuthProvider.credentialFromResult(result);
-        calendarAccessToken=credential?.accessToken||null;
-        const currentEmail=(result.user?.email||auth.currentUser?.email||"").toLowerCase();
+        const currentEmail=(auth.currentUser?.email||"").toLowerCase();
         if(currentEmail===TEST_STUDENT_EMAIL){
           document.querySelector("#calendarEvents").innerHTML='<div class="note">測試學生帳號不載入 NTIN 內部班級行事曆；其餘學生端功能可正常測試。</div>';
-        }else if(calendarAccessToken){
+          return;
+        }
+        calendarAccessToken=await requestGoogleAccessToken({
+          hint:auth.currentUser?.email||"",
+          prompt:""
+        });
+        if(calendarAccessToken){
           await loadCalendarEvents(calendarAccessToken);
         }else{
           document.querySelector("#calendarEvents").innerHTML='<div class="note">未取得 Google Calendar 授權，請再試一次。</div>';
         }
       }catch(error){
         console.error("Calendar reauthorization failed:",error);
-        document.querySelector("#calendarEvents").innerHTML='<div class="note">重新授權失敗，請確認選擇的是 NTIN 學校帳號後再試一次。<button class="auth-btn" id="calendarReconnectBtn" style="margin-top:10px" onclick="location.reload()">重新載入</button></div>';
+        const msg=error?.code==="gis/client-id-not-configured"
+          ?"網站尚未完成新的 Google 登入設定，請通知導師。"
+          :"重新授權失敗，請確認選擇的是 NTIN 學校帳號後再試一次。";
+        document.querySelector("#calendarEvents").innerHTML=`<div class="note">${msg}</div>`;
       }
     };
     return;
@@ -2820,22 +2895,46 @@ async function initAuth(){
       gateError.style.display="none";
       gateLoading.textContent="正在開啟 Google 登入…";
       gateLoading.style.display="block";
+      loginBtn.disabled=true;
       try{
-        const result=await signInWithPopup(auth,provider);
-        const credential=GoogleAuthProvider.credentialFromResult(result);
-        calendarAccessToken=credential?.accessToken||null;
+        const accessToken=await requestGoogleAccessToken({prompt:"select_account"});
+        calendarAccessToken=accessToken;
+
+        const result=await signInFirebaseWithGoogleAccessToken(accessToken);
         const email=(result.user.email||"").toLowerCase();
+
         if(!isAllowedLoginEmail(email)){
           await signOut(auth);
           showError("此班網僅開放 NTIN 學校帳號與指定測試帳號登入。");
+          return;
         }
       }catch(error){
-        if(error.code==="auth/popup-closed-by-user"){
+        console.error("GIS/Firebase credential sign-in failed:",error);
+
+        if(
+          error?.code==="gis/popup_closed"
+          || error?.code==="gis/popup_failed_to_open"
+          || error?.code==="gis/popup-error"
+        ){
           gateLoading.style.display="none";
           loginBtn.style.display="inline-block";
           return;
         }
-        showError("Google 登入失敗，請再試一次。",error);
+
+        if(error?.code==="gis/client-id-not-configured"){
+          showError(
+            "新版登入尚差一步 Google OAuth 設定：請先填入 Web Client ID。",
+            error
+          );
+          return;
+        }
+
+        showError(
+          "Google 登入失敗。請確認使用 NTIN 學校帳號；若仍無法登入，請將畫面截圖提供導師。",
+          error
+        );
+      }finally{
+        loginBtn.disabled=false;
       }
     };
 
