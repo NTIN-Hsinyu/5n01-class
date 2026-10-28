@@ -631,7 +631,8 @@ button.filter{border:1px solid var(--line);background:#fff;border-radius:999px;p
 }
 </style>
 </head>
-<body><div class="access-gate" id="accessGate"><div class="gate-card"><div class="gate-mark">🏫</div><h2>五護101班｜班級公告欄</h2><p>請使用國立臺南護理專科學校 Google 帳號登入，以查看班級公告與行程。</p><button class="auth-btn primary" id="googleLoginBtn">使用 NTIN Google 帳號登入</button><div class="gate-loading" id="gateLoading">正在確認登入狀態…</div><div class="gate-error" id="gateError"></div></div></div>
+<body><div class="access-gate" id="accessGate"><div class="gate-card"><div class="gate-mark">🏫</div><h2>五護101班｜班級公告欄</h2><p>請使用國立臺南護理專科學校 Google 帳號登入，以查看班級公告與行程。</p><div id="googleSignInButton" style="display:none;justify-content:center;margin:14px 0"></div>
+<button class="auth-btn primary" id="googleLoginBtn" style="display:none">使用 NTIN Google 帳號登入</button><div class="gate-loading" id="gateLoading">正在確認登入狀態…</div><div class="gate-error" id="gateError"></div></div></div>
 <header><div class="wrap top"><div class="brand">五護101班 <span>班級公告欄</span></div><div style="display:flex;align-items:center"><nav><a href="#home">首頁</a><a href="#notices">公告</a><a href="#calendar">行事曆</a><a href="#tasks">小考與作業</a><a href="#timetable">課表</a><a href="#rules">班規</a><a href="#links">常用連結</a></nav><div class="authbar"><button class="member-admin-btn" id="memberAdminBtn">👥 班級管理</button><div class="userbox" id="userBox"><img id="userPhoto" alt=""><div class="usertext"><b id="userName"></b><span id="userEmail"></span></div><button class="auth-btn" id="logoutBtn">登出</button></div></div></div></div></header>
 <main class="wrap" id="home">
 <div class="hero">
@@ -1240,15 +1241,11 @@ const firebaseConfig={apiKey:"AIzaSyDriaciyyXKRP6LE5emJDnvwPDA5QucUW0",authDomai
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
 const db=getFirestore(app);
-// v8.9.12：改用 Google Identity Services (GIS) 取得 Google OAuth access token，
-// 再用 signInWithCredential() 登入 Firebase。
-// 這樣不再經過 firebaseapp.com 的 popup/redirect helper，可避開 iOS Safari
-// 「Unable to process request due to missing initial state」問題。
-//
-// 部署前請把下方值換成 Google Cloud Console / Google Auth Platform 的
-// Web application OAuth 2.0 Client ID（格式：xxxx.apps.googleusercontent.com）。
+// v8.9.13：登入與 Calendar 授權完全拆開。
+// 登入只使用 Sign in with Google 的 ID token，再交給 Firebase。
+// Calendar 權限僅在登入後、使用者需要時另外取得。
 const GOOGLE_WEB_CLIENT_ID="145636669643-lnakcs2kj6imle4m5ohe7idlsh2vqpd0.apps.googleusercontent.com";
-const GOOGLE_LOGIN_SCOPE="openid email profile https://www.googleapis.com/auth/calendar.events.readonly";
+const GOOGLE_CALENDAR_SCOPE="https://www.googleapis.com/auth/calendar.events.readonly";
 
 const TEST_STUDENT_EMAIL="sherry.hychao@gmail.com";
 function isAllowedLoginEmail(email=""){
@@ -1258,7 +1255,6 @@ function isAllowedLoginEmail(email=""){
 
 function googleClientConfigured(){
   return GOOGLE_WEB_CLIENT_ID
-    && !GOOGLE_WEB_CLIENT_ID.startsWith("PASTE_")
     && GOOGLE_WEB_CLIENT_ID.endsWith(".apps.googleusercontent.com");
 }
 
@@ -1266,7 +1262,7 @@ function waitForGoogleIdentityServices(timeoutMs=10000){
   return new Promise((resolve,reject)=>{
     const started=Date.now();
     const tick=()=>{
-      if(window.google?.accounts?.oauth2) return resolve();
+      if(window.google?.accounts?.id && window.google?.accounts?.oauth2) return resolve();
       if(Date.now()-started>timeoutMs) return reject(new Error("Google Identity Services 載入逾時"));
       setTimeout(tick,100);
     };
@@ -1274,18 +1270,59 @@ function waitForGoogleIdentityServices(timeoutMs=10000){
   });
 }
 
-async function requestGoogleAccessToken({hint="",prompt="select_account"}={}){
-  if(!googleClientConfigured()){
-    const err=new Error("尚未設定 GOOGLE_WEB_CLIENT_ID");
-    err.code="gis/client-id-not-configured";
-    throw err;
-  }
+async function initializeGoogleSignInButton(){
+  await waitForGoogleIdentityServices();
+
+  google.accounts.id.initialize({
+    client_id:GOOGLE_WEB_CLIENT_ID,
+    callback:async(response)=>{
+      try{
+        gateError.style.display="none";
+        gateLoading.textContent="正在確認班級成員身分…";
+        gateLoading.style.display="block";
+        document.querySelector("#googleSignInButton").style.display="none";
+
+        const idToken=response?.credential;
+        if(!idToken) throw new Error("Google 未回傳 ID token");
+
+        const credential=GoogleAuthProvider.credential(idToken);
+        const result=await signInWithCredential(auth,credential);
+        const email=(result.user?.email||"").toLowerCase();
+
+        if(!isAllowedLoginEmail(email)){
+          await signOut(auth);
+          showError("此班網僅開放 NTIN 學校帳號與指定測試帳號登入。");
+          return;
+        }
+      }catch(error){
+        console.error("Google ID token sign-in failed:",error);
+        showError("Google 登入失敗，請確認使用 NTIN 學校帳號後再試一次。",error);
+      }
+    },
+    auto_select:false
+  });
+
+  const container=document.querySelector("#googleSignInButton");
+  container.innerHTML="";
+  google.accounts.id.renderButton(container,{
+    type:"standard",
+    theme:"outline",
+    size:"large",
+    text:"signin_with",
+    shape:"pill",
+    logo_alignment:"left",
+    width:280
+  });
+  container.style.display="flex";
+}
+
+async function requestCalendarAccessToken({hint="",prompt=""}={}){
   await waitForGoogleIdentityServices();
 
   return new Promise((resolve,reject)=>{
     const client=google.accounts.oauth2.initTokenClient({
       client_id:GOOGLE_WEB_CLIENT_ID,
-      scope:GOOGLE_LOGIN_SCOPE,
+      scope:GOOGLE_CALENDAR_SCOPE,
       hint:hint||undefined,
       callback:(response)=>{
         if(response?.error){
@@ -1295,7 +1332,7 @@ async function requestGoogleAccessToken({hint="",prompt="select_account"}={}){
           return;
         }
         if(!response?.access_token){
-          const err=new Error("Google 未回傳 access token");
+          const err=new Error("Google 未回傳 Calendar access token");
           err.code="gis/no-access-token";
           reject(err);
           return;
@@ -1303,7 +1340,7 @@ async function requestGoogleAccessToken({hint="",prompt="select_account"}={}){
         resolve(response.access_token);
       },
       error_callback:(error)=>{
-        const err=new Error(error?.message||error?.type||"Google 登入視窗無法開啟");
+        const err=new Error(error?.message||error?.type||"Google 授權視窗無法開啟");
         err.code=`gis/${error?.type||"popup-error"}`;
         reject(err);
       }
@@ -1312,161 +1349,16 @@ async function requestGoogleAccessToken({hint="",prompt="select_account"}={}){
   });
 }
 
-async function signInFirebaseWithGoogleAccessToken(accessToken){
-  const firebaseCredential=GoogleAuthProvider.credential(null,accessToken);
-  return await signInWithCredential(auth,firebaseCredential);
-}
-
-const CALENDAR_ID="c_classroom8b940f16@group.calendar.google.com";
-let calendarAccessToken=null;
-let currentMember=null;
-let disciplineRecords=[];
-let disciplinePenalties=[];
-let disciplineRoster=[];
-let disciplineAudits=new Map();
-let unsubscribeDisciplineRecords=null;
-let unsubscribeDisciplinePenalties=null;
-let firestoreNotices=[];
-let currentNoticeFilter="全部";
-let unsubscribeAnnouncements=null;
-let selectedNotice=null;
-let editingNoticeId=null;
-let classMembers=[];
-let classTasks=[];
-let unsubscribeTasks=null;
-let editingTaskId=null;
-let mailboxMessages=[]; let mailboxReplies=[]; let mailboxView="compose"; let selectedMailboxId=null; let unsubscribeMailbox=null; let unsubscribeMailboxReplies=null;
-let timetableData={}; let unsubscribeTimetable=null;
-let seatVersions=[]; let currentSeatSnapshot=null;
-
-const gate=document.querySelector("#accessGate");
-const gateLoading=document.querySelector("#gateLoading");
-const gateError=document.querySelector("#gateError");
-const loginBtn=document.querySelector("#googleLoginBtn");
-const userBox=document.querySelector("#userBox");
-
-loginBtn.style.display="none";
-
-
-const TT_DAYS=[["mon","週一"],["tue","週二"],["wed","週三"],["thu","週四"],["fri","週五"]];
-const TT_PERIODS=[["1","1"],["2","2"],["3","3"],["4","4"],["5","5"],["6","6"],["7","7"],["8","8"]];
-
-function timetableKey(day,period){return `${day}_${period}`}
-function renderTimetable(){
-  const body=document.querySelector("#timetableBody"); if(!body)return;
-  body.innerHTML=TT_PERIODS.map(([p,pl])=>`<tr><td class="period">${pl}</td>${TT_DAYS.map(([d])=>{
-    const c=timetableData[timetableKey(d,p)]||{};
-    return `<td class="course-cell">${c.course?`<div class="course-name">${escHtml(c.course)}</div>${c.room?`<div class="course-room">${escHtml(c.room)}</div>`:""}`:""}</td>`;
-  }).join("")}</tr>`).join("");
-}
-function renderTimetableEditor(){
-  const table=document.querySelector("#timetableEditor"); if(!table)return;
-  table.innerHTML=`<tr><th></th>${TT_DAYS.map(x=>`<th>${x[1]}</th>`).join("")}</tr>`+
-  TT_PERIODS.map(([p,pl])=>`<tr><td class="period">${pl}</td>${TT_DAYS.map(([d])=>{
-    const k=timetableKey(d,p),c=timetableData[k]||{};
-    return `<td><input data-tt="${k}" data-field="course" value="${escHtml(c.course||"")}" placeholder="課程名稱"><input class="room-input" data-tt="${k}" data-field="room" value="${escHtml(c.room||"")}" placeholder="教室（選填）"></td>`;
-  }).join("")}</tr>`).join("");
-}
-function startTimetable(){
-  if(unsubscribeTimetable)unsubscribeTimetable();
-  unsubscribeTimetable=onSnapshot(doc(db,"timetable","current"),snap=>{
-    timetableData=snap.exists()?(snap.data().cells||{}):{};
-    renderTimetable();
-  },e=>{console.error(e);document.querySelector("#timetableBody").innerHTML='<tr><td colspan="6" class="note">課表載入失敗。</td></tr>'});
-}
-function openTimetableEditor(){
-  if(currentMember?.role!=="advisor")return;
-  renderTimetableEditor();
-  document.querySelector("#timetableBackdrop").classList.add("show");
-  document.body.style.overflow="hidden";
-}
-function closeTimetableEditor(){
-  document.querySelector("#timetableBackdrop").classList.remove("show");
-  document.body.style.overflow="";
-}
-document.querySelector("#editTimetableBtn").onclick=openTimetableEditor;
-document.querySelector("#timetableClose").onclick=closeTimetableEditor;
-document.querySelector("#timetableCancel").onclick=closeTimetableEditor;
-document.querySelector("#timetableBackdrop").onclick=e=>{if(e.target===document.querySelector("#timetableBackdrop"))closeTimetableEditor()};
-document.querySelector("#timetableSave").onclick=async()=>{
-  if(currentMember?.role!=="advisor")return;
-  const cells={};
-  document.querySelectorAll("#timetableEditor [data-tt]").forEach(input=>{
-    const k=input.dataset.tt,field=input.dataset.field;
-    cells[k]??={course:"",room:""};
-    cells[k][field]=input.value.trim();
-  });
-  const btn=document.querySelector("#timetableSave");btn.disabled=true;btn.textContent="儲存中…";
-  try{
-    await setDoc(doc(db,"timetable","current"),{cells,updatedAt:serverTimestamp(),updatedBy:auth.currentUser.uid},{merge:true});
-    closeTimetableEditor();
-  }catch(e){console.error(e);alert("課表儲存失敗，請確認 Firestore Rules 已加入 timetable 權限。")}
-  finally{btn.disabled=false;btn.textContent="儲存課表"}
-};
-
-
-function openSeatTool(){
-  if(currentMember?.role!=="advisor")return;
-  document.querySelector("#seatToolBackdrop").classList.add("show");
-  document.body.style.overflow="hidden";
-}
-function closeSeatTool(){
-  document.querySelector("#seatToolBackdrop").classList.remove("show");
-  document.body.style.overflow="";
-}
-document.querySelector("#seatToolBtn").onclick=e=>{e.preventDefault();openSeatTool()};
-document.querySelector("#seatToolClose").onclick=closeSeatTool;
-document.querySelector("#seatToolBackdrop").onclick=e=>{if(e.target===document.querySelector("#seatToolBackdrop"))closeSeatTool()};
-
-async function getSeatHistory(){
-  const snap=await getDocs(query(collection(db,"seatingVersions"),orderBy("createdAt","desc")));
-  seatVersions=snap.docs.map(d=>({id:d.id,...d.data()}));
-  return seatVersions;
-}
-async function sendSeatHistory(){
-  const items=await getSeatHistory();
-  document.querySelector("#seatToolFrame")?.contentWindow?.postMessage({type:"seat-history",items:items.map(x=>({
-    id:x.id,label:x.label||"未命名版本",
-    timeText:x.createdAt?.toDate?x.createdAt.toDate().toLocaleString("zh-TW"):""
-  }))},"*");
-}
-window.addEventListener("message",async e=>{
-  const m=e.data||{};
-  if(!String(m.type||"").startsWith("seat-"))return;
-  if(currentMember?.role!=="advisor")return;
-  try{
-    if(m.type==="seat-ready"){
-      const cur=await getDoc(doc(db,"seating","current"));
-      currentSeatSnapshot=cur.exists()?cur.data().snapshot:null;
-      e.source?.postMessage({type:"seat-load-current",snapshot:currentSeatSnapshot},"*");
-    }
-    if(m.type==="seat-save-version"){
-      const payload={label:String(m.label||"未命名版本").slice(0,80),snapshot:m.snapshot,createdAt:serverTimestamp(),authorUid:auth.currentUser.uid,authorName:currentMember.name||auth.currentUser.displayName||""};
-      const ref=await addDoc(collection(db,"seatingVersions"),payload);
-      await setDoc(doc(db,"seating","current"),{snapshot:m.snapshot,versionId:ref.id,label:payload.label,updatedAt:serverTimestamp(),updatedBy:auth.currentUser.uid},{merge:true});
-      currentSeatSnapshot=m.snapshot;
-      e.source?.postMessage({type:"seat-saved"},"*");
-      await sendSeatHistory();
-    }
-    if(m.type==="seat-request-history") await sendSeatHistory();
-    if(m.type==="seat-load-version"){
-      const d=await getDoc(doc(db,"seatingVersions",m.id));
-      if(d.exists()){
-        const snap=d.data().snapshot;
-        await setDoc(doc(db,"seating","current"),{snapshot:snap,versionId:d.id,label:d.data().label||"",updatedAt:serverTimestamp(),updatedBy:auth.currentUser.uid},{merge:true});
-        currentSeatSnapshot=snap;
-        e.source?.postMessage({type:"seat-version-loaded",snapshot:snap},"*");
-      }
-    }
-  }catch(err){console.error("Seat tool error",err);alert("座位表操作失敗，請確認 Firestore Rules 已加入 seating 與 seatingVersions 權限。")}
-});
-
 function showError(message,error=null){
   console.error("Firebase Auth error:",error||message);
   gateError.textContent=error?.code ? `${message}（${error.code}）` : message;
   gateError.style.display="block";
   gateLoading.style.display="none";
-  loginBtn.style.display="inline-block";
+  loginBtn.style.display="none";
+  const gisBtnHide=document.querySelector("#googleSignInButton");
+  if(gisBtnHide) gisBtnHide.style.display="none";
+  const gisBtn=document.querySelector("#googleSignInButton");
+  if(gisBtn) gisBtn.style.display="flex";
 }
 
 
@@ -1661,7 +1553,7 @@ async function loadCalendarEvents(token){
           document.querySelector("#calendarEvents").innerHTML='<div class="note">測試學生帳號不載入 NTIN 內部班級行事曆；其餘學生端功能可正常測試。</div>';
           return;
         }
-        calendarAccessToken=await requestGoogleAccessToken({
+        calendarAccessToken=await requestCalendarAccessToken({
           hint:auth.currentUser?.email||"",
           prompt:""
         });
@@ -2892,51 +2784,16 @@ async function initAuth(){
     await setPersistence(auth,browserLocalPersistence);
 
     loginBtn.onclick=async()=>{
-      gateError.style.display="none";
-      gateLoading.textContent="正在開啟 Google 登入…";
-      gateLoading.style.display="block";
-      loginBtn.disabled=true;
-      try{
-        const accessToken=await requestGoogleAccessToken({prompt:"select_account"});
-        calendarAccessToken=accessToken;
-
-        const result=await signInFirebaseWithGoogleAccessToken(accessToken);
-        const email=(result.user.email||"").toLowerCase();
-
-        if(!isAllowedLoginEmail(email)){
-          await signOut(auth);
-          showError("此班網僅開放 NTIN 學校帳號與指定測試帳號登入。");
-          return;
-        }
-      }catch(error){
-        console.error("GIS/Firebase credential sign-in failed:",error);
-
-        if(
-          error?.code==="gis/popup_closed"
-          || error?.code==="gis/popup_failed_to_open"
-          || error?.code==="gis/popup-error"
-        ){
-          gateLoading.style.display="none";
-          loginBtn.style.display="inline-block";
-          return;
-        }
-
-        if(error?.code==="gis/client-id-not-configured"){
-          showError(
-            "新版登入尚差一步 Google OAuth 設定：請先填入 Web Client ID。",
-            error
-          );
-          return;
-        }
-
-        showError(
-          "Google 登入失敗。請確認使用 NTIN 學校帳號；若仍無法登入，請將畫面截圖提供導師。",
-          error
-        );
-      }finally{
-        loginBtn.disabled=false;
-      }
+      initializeGoogleSignInButton().catch(error=>{
+        console.error("Google Sign-In button init failed:",error);
+        showError("Google 登入元件載入失敗，請重新整理後再試一次。",error);
+      });
     };
+
+    initializeGoogleSignInButton().catch(error=>{
+      console.error("Google Sign-In button init failed:",error);
+      showError("Google 登入元件載入失敗，請重新整理後再試一次。",error);
+    });
 
     document.querySelector("#logoutBtn").onclick=()=>signOut(auth);
 
@@ -2961,7 +2818,9 @@ async function initAuth(){
         gate.style.display="flex";
         userBox.style.display="none";
         gateLoading.style.display="none";
-        loginBtn.style.display="inline-block";
+        loginBtn.style.display="none";
+  const gisBtn=document.querySelector("#googleSignInButton");
+  if(gisBtn) gisBtn.style.display="flex";
         return;
       }
       const email=(user.email||"").toLowerCase();
